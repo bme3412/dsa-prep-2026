@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { TopicView } from "./components/TopicView";
+import { PracticeView } from "./components/PracticeView";
 import { hashmapContent } from "./content/hashmap";
 import { arraysContent } from "./content/arrays";
 import { sortingContent } from "./content/sorting";
@@ -12,9 +13,11 @@ import { systemDesignContent } from "./content/system-design";
 import { pythonAWSContent } from "./content/python-aws";
 import { liveCodingContent } from "./content/live-coding";
 import { claudeCodeContent } from "./content/claude-code";
+import { practiceContent, aggregatedProblems } from "./content/practice";
 import type { DataStructure } from "./types";
 
 const topics: DataStructure[] = [
+  practiceContent,
   liveCodingContent,
   claudeCodeContent,
   agentsContent,
@@ -122,7 +125,11 @@ export default function App() {
       <main className="pt-14 lg:pt-0 lg:pl-[280px] min-h-screen">
         <div className="w-full overflow-x-hidden">
           {currentTopic ? (
-            <TopicView topic={currentTopic} />
+            currentTopic.viewMode === "practice" ? (
+              <PracticeView problems={aggregatedProblems} />
+            ) : (
+              <TopicView topic={currentTopic} />
+            )
           ) : (
             <div className="flex items-center justify-center h-screen">
               <p className="text-[var(--color-text-muted)]">Select a topic</p>

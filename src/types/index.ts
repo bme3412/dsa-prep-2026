@@ -40,6 +40,11 @@ export interface Problem {
   testCases: TestCase[];
 }
 
+export interface AggregatedProblem extends Problem {
+  topic: string;
+  topicColor: "accent" | "teal" | "amber" | "coral" | "green";
+}
+
 export interface TestCase {
   input: string;
   expected: string;
@@ -60,8 +65,8 @@ export interface DataStructure {
   tagline: string;
   description?: string;
   color: "accent" | "teal" | "amber" | "coral" | "green";
-  /** "pattern-first" for DSA modules, "concepts" for knowledge modules */
-  viewMode?: "pattern-first" | "concepts";
+  /** "pattern-first" for DSA modules, "concepts" for knowledge modules, "practice" for practice hub */
+  viewMode?: "pattern-first" | "concepts" | "practice";
   sections: Section[];
   operations: Operation[];
   patterns: Pattern[];

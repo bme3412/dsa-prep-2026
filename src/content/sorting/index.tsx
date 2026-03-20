@@ -569,33 +569,30 @@ def topological_sort_dfs(n, edges):
           explanation: "Intervals [1,4] and [4,5] are adjacent, merge to [1,5].",
         },
       ],
-      starterCode: `function merge(intervals) {
-  // Your solution here
+      starterCode: `def merge(intervals):
+    # Your solution here
+    pass`,
+      solution: `def merge(intervals):
+    if len(intervals) <= 1:
+        return intervals
 
-}`,
-      solution: `function merge(intervals) {
-  if (intervals.length <= 1) return intervals;
+    # Sort by start time
+    intervals.sort(key=lambda x: x[0])
 
-  // Sort by start time
-  intervals.sort((a, b) => a[0] - b[0]);
+    result = [intervals[0]]
 
-  const result = [intervals[0]];
+    for i in range(1, len(intervals)):
+        current = intervals[i]
+        last_merged = result[-1]
 
-  for (let i = 1; i < intervals.length; i++) {
-    const current = intervals[i];
-    const lastMerged = result[result.length - 1];
+        if current[0] <= last_merged[1]:
+            # Overlapping: extend the end
+            last_merged[1] = max(last_merged[1], current[1])
+        else:
+            # Non-overlapping: add new interval
+            result.append(current)
 
-    if (current[0] <= lastMerged[1]) {
-      // Overlapping: extend the end
-      lastMerged[1] = Math.max(lastMerged[1], current[1]);
-    } else {
-      // Non-overlapping: add new interval
-      result.push(current);
-    }
-  }
-
-  return result;
-}`,
+    return result`,
       hints: [
         "First step: sort intervals by start time.",
         "After sorting, overlapping intervals are adjacent.",
@@ -604,18 +601,18 @@ def topological_sort_dfs(n, edges):
       ],
       testCases: [
         {
-          input: "JSON.stringify(merge([[1,3],[2,6],[8,10],[15,18]]))",
-          expected: "\"[[1,6],[8,10],[15,18]]\"",
+          input: "merge([[1,3],[2,6],[8,10],[15,18]])",
+          expected: "[[1, 6], [8, 10], [15, 18]]",
           description: "Standard overlapping case",
         },
         {
-          input: "JSON.stringify(merge([[1,4],[4,5]]))",
-          expected: "\"[[1,5]]\"",
+          input: "merge([[1,4],[4,5]])",
+          expected: "[[1, 5]]",
           description: "Adjacent intervals",
         },
         {
-          input: "JSON.stringify(merge([[1,4],[2,3]]))",
-          expected: "\"[[1,4]]\"",
+          input: "merge([[1,4],[2,3]])",
+          expected: "[[1, 4]]",
           description: "Fully contained interval",
         },
       ],
@@ -636,49 +633,45 @@ def topological_sort_dfs(n, edges):
           output: "[0,1,2]",
         },
       ],
-      starterCode: `function sortColors(nums) {
-  // Your solution here (modify in-place)
+      starterCode: `def sort_colors(nums):
+    # Your solution here (modify in-place)
+    pass`,
+      solution: `def sort_colors(nums):
+    low = 0       # Next position for 0
+    mid = 0       # Current element
+    high = len(nums) - 1  # Next position for 2
 
-}`,
-      solution: `function sortColors(nums) {
-  let low = 0;       // Next position for 0
-  let mid = 0;       // Current element
-  let high = nums.length - 1;  // Next position for 2
-
-  while (mid <= high) {
-    if (nums[mid] === 0) {
-      [nums[low], nums[mid]] = [nums[mid], nums[low]];
-      low++;
-      mid++;
-    } else if (nums[mid] === 1) {
-      mid++;
-    } else {
-      [nums[mid], nums[high]] = [nums[high], nums[mid]];
-      high--;
-      // Don't increment mid - need to check swapped value
-    }
-  }
-}`,
+    while mid <= high:
+        if nums[mid] == 0:
+            nums[low], nums[mid] = nums[mid], nums[low]
+            low += 1
+            mid += 1
+        elif nums[mid] == 1:
+            mid += 1
+        else:
+            nums[mid], nums[high] = nums[high], nums[mid]
+            high -= 1
+            # Don't increment mid - need to check swapped value`,
       hints: [
         "This is the Dutch National Flag problem.",
         "Use three pointers: low (0s boundary), mid (current), high (2s boundary).",
         "0s go to the left, 2s go to the right, 1s stay in the middle.",
-        "When swapping with high, don't increment mid — the swapped value needs checking.",
+        "When swapping with high, don't increment mid - the swapped value needs checking.",
       ],
       testCases: [
         {
-          input: "(function() { const a = [2,0,2,1,1,0]; sortColors(a); return JSON.stringify(a); })()",
-          expected: "\"[0,0,1,1,2,2]\"",
+          input: "(lambda: (sort_colors(a := [2,0,2,1,1,0]), a)[1])()",
+          expected: "[0, 0, 1, 1, 2, 2]",
           description: "Standard case",
         },
         {
-          input: "(function() { const a = [2,0,1]; sortColors(a); return JSON.stringify(a); })()",
-          expected: "\"[0,1,2]\"",
+          input: "(lambda: (sort_colors(a := [2,0,1]), a)[1])()",
+          expected: "[0, 1, 2]",
           description: "Three elements",
         },
         {
-          input: "(function() { const a = [0]; sortColors(a); return JSON.stringify(a); })()",
-          expected: "\"[0]\"",
+          input: "(lambda: (sort_colors(a := [0]), a)[1])()",
+          expected: "[0]",
           description: "Single element",
         },
       ],
@@ -700,63 +693,38 @@ def topological_sort_dfs(n, edges):
           output: "4",
         },
       ],
-      starterCode: `function findKthLargest(nums, k) {
-  // Your solution here
-
-}`,
-      solution: `function findKthLargest(nums, k) {
-  // Quick Select algorithm
-  const target = nums.length - k; // kth largest = (n-k)th smallest
-
-  function partition(left, right) {
-    const pivot = nums[right];
-    let i = left;
-
-    for (let j = left; j < right; j++) {
-      if (nums[j] <= pivot) {
-        [nums[i], nums[j]] = [nums[j], nums[i]];
-        i++;
-      }
-    }
-    [nums[i], nums[right]] = [nums[right], nums[i]];
-    return i;
-  }
-
-  function quickSelect(left, right) {
-    if (left === right) return nums[left];
-
-    const pivotIndex = partition(left, right);
-
-    if (pivotIndex === target) {
-      return nums[pivotIndex];
-    } else if (pivotIndex < target) {
-      return quickSelect(pivotIndex + 1, right);
-    } else {
-      return quickSelect(left, pivotIndex - 1);
-    }
-  }
-
-  return quickSelect(0, nums.length - 1);
-}`,
+      starterCode: `def find_kth_largest(nums, k):
+    # Your solution here
+    pass`,
+      solution: `def find_kth_largest(nums, k):
+    import heapq
+    # Use a min-heap of size k
+    # The top of heap will be the kth largest
+    heap = []
+    for num in nums:
+        heapq.heappush(heap, num)
+        if len(heap) > k:
+            heapq.heappop(heap)
+    return heap[0]`,
       hints: [
         "Simple approach: sort and return nums[n-k]. O(n log n).",
-        "Better: use Quick Select (partial Quick Sort). O(n) average.",
-        "Quick Select partitions like Quick Sort but only recurses into one half.",
+        "Better: use a min-heap of size k. O(n log k).",
+        "Even better: use Quick Select (partial Quick Sort). O(n) average.",
         "The kth largest is the (n-k)th element in sorted order.",
       ],
       testCases: [
         {
-          input: "findKthLargest([3,2,1,5,6,4], 2)",
+          input: "find_kth_largest([3,2,1,5,6,4], 2)",
           expected: "5",
           description: "Standard case",
         },
         {
-          input: "findKthLargest([3,2,3,1,2,4,5,5,6], 4)",
+          input: "find_kth_largest([3,2,3,1,2,4,5,5,6], 4)",
           expected: "4",
           description: "With duplicates",
         },
         {
-          input: "findKthLargest([1], 1)",
+          input: "find_kth_largest([1], 1)",
           expected: "1",
           description: "Single element",
         },
@@ -780,32 +748,29 @@ def topological_sort_dfs(n, edges):
           explanation: "No overlap, 1 room is enough.",
         },
       ],
-      starterCode: `function minMeetingRooms(intervals) {
-  // Your solution here
+      starterCode: `def min_meeting_rooms(intervals):
+    # Your solution here
+    pass`,
+      solution: `def min_meeting_rooms(intervals):
+    if not intervals:
+        return 0
 
-}`,
-      solution: `function minMeetingRooms(intervals) {
-  if (intervals.length === 0) return 0;
+    # Extract and sort start/end times separately
+    starts = sorted([i[0] for i in intervals])
+    ends = sorted([i[1] for i in intervals])
 
-  // Extract and sort start/end times separately
-  const starts = intervals.map(i => i[0]).sort((a, b) => a - b);
-  const ends = intervals.map(i => i[1]).sort((a, b) => a - b);
+    rooms = 0
+    end_ptr = 0
 
-  let rooms = 0;
-  let endPtr = 0;
+    for i in range(len(starts)):
+        # If a meeting starts before the earliest ending, need new room
+        if starts[i] < ends[end_ptr]:
+            rooms += 1
+        else:
+            # A room freed up
+            end_ptr += 1
 
-  for (let i = 0; i < starts.length; i++) {
-    // If a meeting starts before the earliest ending, need new room
-    if (starts[i] < ends[endPtr]) {
-      rooms++;
-    } else {
-      // A room freed up
-      endPtr++;
-    }
-  }
-
-  return rooms;
-}`,
+    return rooms`,
       hints: [
         "Think of it as tracking concurrent meetings at any point in time.",
         "Separate approach: extract all start and end times, sort them.",
@@ -814,22 +779,22 @@ def topological_sort_dfs(n, edges):
       ],
       testCases: [
         {
-          input: "minMeetingRooms([[0,30],[5,10],[15,20]])",
+          input: "min_meeting_rooms([[0,30],[5,10],[15,20]])",
           expected: "2",
           description: "Overlapping meetings",
         },
         {
-          input: "minMeetingRooms([[7,10],[2,4]])",
+          input: "min_meeting_rooms([[7,10],[2,4]])",
           expected: "1",
           description: "Non-overlapping",
         },
         {
-          input: "minMeetingRooms([[1,5],[2,6],[3,7],[4,8]])",
+          input: "min_meeting_rooms([[1,5],[2,6],[3,7],[4,8]])",
           expected: "4",
           description: "All overlap",
         },
         {
-          input: "minMeetingRooms([])",
+          input: "min_meeting_rooms([])",
           expected: "0",
           description: "No meetings",
         },
@@ -852,26 +817,29 @@ def topological_sort_dfs(n, edges):
           output: '"9534330"',
         },
       ],
-      starterCode: `function largestNumber(nums) {
-  // Your solution here
+      starterCode: `def largest_number(nums):
+    # Your solution here
+    pass`,
+      solution: `def largest_number(nums):
+    from functools import cmp_to_key
 
-}`,
-      solution: `function largestNumber(nums) {
-  // Convert to strings
-  const strs = nums.map(String);
+    # Custom comparator: compare a+b vs b+a
+    def compare(a, b):
+        if a + b > b + a:
+            return -1
+        elif a + b < b + a:
+            return 1
+        return 0
 
-  // Custom comparator: compare a+b vs b+a
-  strs.sort((a, b) => {
-    const order1 = a + b;
-    const order2 = b + a;
-    return order2.localeCompare(order1); // Descending
-  });
+    # Convert to strings and sort
+    strs = [str(n) for n in nums]
+    strs.sort(key=cmp_to_key(compare))
 
-  // Handle edge case: all zeros
-  if (strs[0] === '0') return '0';
+    # Handle edge case: all zeros
+    if strs[0] == '0':
+        return '0'
 
-  return strs.join('');
-}`,
+    return ''.join(strs)`,
       hints: [
         "We need a custom comparator to decide ordering.",
         "For two numbers a and b, compare 'ab' vs 'ba' as strings.",
@@ -880,22 +848,22 @@ def topological_sort_dfs(n, edges):
       ],
       testCases: [
         {
-          input: 'largestNumber([10,2])',
+          input: "largest_number([10,2])",
           expected: '"210"',
           description: "Basic case",
         },
         {
-          input: 'largestNumber([3,30,34,5,9])',
+          input: "largest_number([3,30,34,5,9])",
           expected: '"9534330"',
           description: "Multiple digits",
         },
         {
-          input: 'largestNumber([0,0])',
+          input: "largest_number([0,0])",
           expected: '"0"',
           description: "All zeros",
         },
         {
-          input: 'largestNumber([1])',
+          input: "largest_number([1])",
           expected: '"1"',
           description: "Single element",
         },

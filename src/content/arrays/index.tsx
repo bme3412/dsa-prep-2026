@@ -422,22 +422,19 @@ def remove_element(nums, val):
           output: "23",
         },
       ],
-      starterCode: `function maxSubArray(nums) {
-  // Your solution here
+      starterCode: `def max_subarray(nums):
+    # Your solution here
+    pass`,
+      solution: `def max_subarray(nums):
+    max_current = nums[0]
+    max_global = nums[0]
 
-}`,
-      solution: `function maxSubArray(nums) {
-  let maxCurrent = nums[0];
-  let maxGlobal = nums[0];
+    for i in range(1, len(nums)):
+        # Extend previous subarray or start new?
+        max_current = max(nums[i], max_current + nums[i])
+        max_global = max(max_global, max_current)
 
-  for (let i = 1; i < nums.length; i++) {
-    // Extend previous subarray or start new?
-    maxCurrent = Math.max(nums[i], maxCurrent + nums[i]);
-    maxGlobal = Math.max(maxGlobal, maxCurrent);
-  }
-
-  return maxGlobal;
-}`,
+    return max_global`,
       hints: [
         "Brute force: check all subarrays O(n^2). Can we do better?",
         "At each position, we either extend the previous subarray or start fresh.",
@@ -446,22 +443,22 @@ def remove_element(nums, val):
       ],
       testCases: [
         {
-          input: "maxSubArray([-2,1,-3,4,-1,2,1,-5,4])",
+          input: "max_subarray([-2,1,-3,4,-1,2,1,-5,4])",
           expected: "6",
           description: "Standard case with mixed values",
         },
         {
-          input: "maxSubArray([1])",
+          input: "max_subarray([1])",
           expected: "1",
           description: "Single element",
         },
         {
-          input: "maxSubArray([-1])",
+          input: "max_subarray([-1])",
           expected: "-1",
           description: "Single negative element",
         },
         {
-          input: "maxSubArray([5,4,-1,7,8])",
+          input: "max_subarray([5,4,-1,7,8])",
           expected: "23",
           description: "Entire array is the answer",
         },
@@ -485,21 +482,18 @@ def remove_element(nums, val):
           explanation: "No profitable transaction possible.",
         },
       ],
-      starterCode: `function maxProfit(prices) {
-  // Your solution here
+      starterCode: `def max_profit(prices):
+    # Your solution here
+    pass`,
+      solution: `def max_profit(prices):
+    min_price = float('inf')
+    max_profit = 0
 
-}`,
-      solution: `function maxProfit(prices) {
-  let minPrice = Infinity;
-  let maxProfit = 0;
+    for price in prices:
+        min_price = min(min_price, price)
+        max_profit = max(max_profit, price - min_price)
 
-  for (const price of prices) {
-    minPrice = Math.min(minPrice, price);
-    maxProfit = Math.max(maxProfit, price - minPrice);
-  }
-
-  return maxProfit;
-}`,
+    return max_profit`,
       hints: [
         "We need to find max(prices[j] - prices[i]) where j > i.",
         "Track the minimum price seen so far as you iterate.",
@@ -508,29 +502,29 @@ def remove_element(nums, val):
       ],
       testCases: [
         {
-          input: "maxProfit([7,1,5,3,6,4])",
+          input: "max_profit([7,1,5,3,6,4])",
           expected: "5",
           description: "Standard case",
         },
         {
-          input: "maxProfit([7,6,4,3,1])",
+          input: "max_profit([7,6,4,3,1])",
           expected: "0",
           description: "Descending prices",
         },
         {
-          input: "maxProfit([1,2])",
+          input: "max_profit([1,2])",
           expected: "1",
           description: "Two elements",
         },
         {
-          input: "maxProfit([2,4,1])",
+          input: "max_profit([2,4,1])",
           expected: "2",
           description: "Best is not at end",
         },
       ],
     },
     {
-      id: "longest-substring-no-repeat",
+      id: "arrays-longest-substring-no-repeat",
       title: "Longest Substring Without Repeating Characters",
       difficulty: "medium",
       description:
@@ -552,29 +546,23 @@ def remove_element(nums, val):
           explanation: 'The answer is "wke", with length 3.',
         },
       ],
-      starterCode: `function lengthOfLongestSubstring(s) {
-  // Your solution here
+      starterCode: `def length_of_longest_substring(s):
+    # Your solution here
+    pass`,
+      solution: `def length_of_longest_substring(s):
+    last_seen = {}  # char -> last index
+    start = 0
+    max_len = 0
 
-}`,
-      solution: `function lengthOfLongestSubstring(s) {
-  const lastSeen = {}; // char -> last index
-  let start = 0;
-  let maxLen = 0;
+    for i, char in enumerate(s):
+        # If char seen and within current window, shrink window
+        if char in last_seen and last_seen[char] >= start:
+            start = last_seen[char] + 1
 
-  for (let i = 0; i < s.length; i++) {
-    const char = s[i];
+        last_seen[char] = i
+        max_len = max(max_len, i - start + 1)
 
-    // If char seen and within current window, shrink window
-    if (lastSeen[char] !== undefined && lastSeen[char] >= start) {
-      start = lastSeen[char] + 1;
-    }
-
-    lastSeen[char] = i;
-    maxLen = Math.max(maxLen, i - start + 1);
-  }
-
-  return maxLen;
-}`,
+    return max_len`,
       hints: [
         "This is a variable-size sliding window problem.",
         "Use a hashmap to track the last index where each character was seen.",
@@ -583,22 +571,22 @@ def remove_element(nums, val):
       ],
       testCases: [
         {
-          input: 'lengthOfLongestSubstring("abcabcbb")',
+          input: 'length_of_longest_substring("abcabcbb")',
           expected: "3",
           description: "Standard case",
         },
         {
-          input: 'lengthOfLongestSubstring("bbbbb")',
+          input: 'length_of_longest_substring("bbbbb")',
           expected: "1",
           description: "All same character",
         },
         {
-          input: 'lengthOfLongestSubstring("pwwkew")',
+          input: 'length_of_longest_substring("pwwkew")',
           expected: "3",
           description: "Multiple valid substrings",
         },
         {
-          input: 'lengthOfLongestSubstring("")',
+          input: 'length_of_longest_substring("")',
           expected: "0",
           description: "Empty string",
         },
@@ -621,30 +609,26 @@ def remove_element(nums, val):
           output: "1",
         },
       ],
-      starterCode: `function maxArea(height) {
-  // Your solution here
+      starterCode: `def max_area(height):
+    # Your solution here
+    pass`,
+      solution: `def max_area(height):
+    left = 0
+    right = len(height) - 1
+    max_area = 0
 
-}`,
-      solution: `function maxArea(height) {
-  let left = 0;
-  let right = height.length - 1;
-  let maxArea = 0;
+    while left < right:
+        width = right - left
+        h = min(height[left], height[right])
+        max_area = max(max_area, width * h)
 
-  while (left < right) {
-    const width = right - left;
-    const h = Math.min(height[left], height[right]);
-    maxArea = Math.max(maxArea, width * h);
+        # Move the shorter line inward
+        if height[left] < height[right]:
+            left += 1
+        else:
+            right -= 1
 
-    // Move the shorter line inward
-    if (height[left] < height[right]) {
-      left++;
-    } else {
-      right--;
-    }
-  }
-
-  return maxArea;
-}`,
+    return max_area`,
       hints: [
         "Area = width * min(left_height, right_height).",
         "Start with maximum width (left=0, right=n-1).",
@@ -653,22 +637,22 @@ def remove_element(nums, val):
       ],
       testCases: [
         {
-          input: "maxArea([1,8,6,2,5,4,8,3,7])",
+          input: "max_area([1,8,6,2,5,4,8,3,7])",
           expected: "49",
           description: "Standard case",
         },
         {
-          input: "maxArea([1,1])",
+          input: "max_area([1,1])",
           expected: "1",
           description: "Two elements",
         },
         {
-          input: "maxArea([4,3,2,1,4])",
+          input: "max_area([4,3,2,1,4])",
           expected: "16",
           description: "Symmetric heights",
         },
         {
-          input: "maxArea([1,2,1])",
+          input: "max_area([1,2,1])",
           expected: "2",
           description: "Three elements",
         },
@@ -692,53 +676,49 @@ def remove_element(nums, val):
           explanation: "Subarrays [1,2] and [3].",
         },
       ],
-      starterCode: `function subarraySum(nums, k) {
-  // Your solution here
+      starterCode: `def subarray_sum(nums, k):
+    # Your solution here
+    pass`,
+      solution: `def subarray_sum(nums, k):
+    prefix_count = {0: 1}  # prefix sum -> count
+    current_sum = 0
+    count = 0
 
-}`,
-      solution: `function subarraySum(nums, k) {
-  const prefixCount = { 0: 1 }; // prefix sum -> count
-  let currentSum = 0;
-  let count = 0;
+    for num in nums:
+        current_sum += num
 
-  for (const num of nums) {
-    currentSum += num;
+        # If (current_sum - k) was seen, those subarrays sum to k
+        if current_sum - k in prefix_count:
+            count += prefix_count[current_sum - k]
 
-    // If (currentSum - k) was seen, those subarrays sum to k
-    if (prefixCount[currentSum - k] !== undefined) {
-      count += prefixCount[currentSum - k];
-    }
+        # Record this prefix sum
+        prefix_count[current_sum] = prefix_count.get(current_sum, 0) + 1
 
-    // Record this prefix sum
-    prefixCount[currentSum] = (prefixCount[currentSum] || 0) + 1;
-  }
-
-  return count;
-}`,
+    return count`,
       hints: [
         "Brute force: check all subarrays O(n^2). Can we do better?",
         "Use prefix sums: sum(i,j) = prefix[j+1] - prefix[i].",
         "If prefix[j] - prefix[i] = k, then prefix[i] = prefix[j] - k.",
-        "Store counts of prefix sums in a hashmap. At each position, check how many times (currentSum - k) was seen.",
+        "Store counts of prefix sums in a hashmap. At each position, check how many times (current_sum - k) was seen.",
       ],
       testCases: [
         {
-          input: "subarraySum([1,1,1], 2)",
+          input: "subarray_sum([1,1,1], 2)",
           expected: "2",
           description: "Multiple subarrays",
         },
         {
-          input: "subarraySum([1,2,3], 3)",
+          input: "subarray_sum([1,2,3], 3)",
           expected: "2",
           description: "Different length subarrays",
         },
         {
-          input: "subarraySum([1], 1)",
+          input: "subarray_sum([1], 1)",
           expected: "1",
           description: "Single element equals k",
         },
         {
-          input: "subarraySum([1,-1,0], 0)",
+          input: "subarray_sum([1,-1,0], 0)",
           expected: "3",
           description: "Zero sum subarrays",
         },

@@ -657,36 +657,27 @@ trie.starts_with("app") # True`,
           explanation: '"raceacar" is not a palindrome.',
         },
       ],
-      starterCode: `function isPalindrome(s) {
-  // Your solution here
+      starterCode: `def is_palindrome(s):
+    # Your solution here
+    pass`,
+      solution: `def is_palindrome(s):
+    left = 0
+    right = len(s) - 1
 
-}`,
-      solution: `function isPalindrome(s) {
-  let left = 0;
-  let right = s.length - 1;
+    while left < right:
+        # Skip non-alphanumeric from left
+        while left < right and not s[left].isalnum():
+            left += 1
+        # Skip non-alphanumeric from right
+        while left < right and not s[right].isalnum():
+            right -= 1
 
-  while (left < right) {
-    // Skip non-alphanumeric from left
-    while (left < right && !isAlphanumeric(s[left])) {
-      left++;
-    }
-    // Skip non-alphanumeric from right
-    while (left < right && !isAlphanumeric(s[right])) {
-      right--;
-    }
+        if s[left].lower() != s[right].lower():
+            return False
+        left += 1
+        right -= 1
 
-    if (s[left].toLowerCase() !== s[right].toLowerCase()) {
-      return false;
-    }
-    left++;
-    right--;
-  }
-  return true;
-}
-
-function isAlphanumeric(c) {
-  return /[a-zA-Z0-9]/.test(c);
-}`,
+    return True`,
       hints: [
         "Use two pointers from opposite ends.",
         "Skip characters that aren't letters or numbers.",
@@ -695,17 +686,17 @@ function isAlphanumeric(c) {
       ],
       testCases: [
         {
-          input: 'isPalindrome("A man, a plan, a canal: Panama")',
+          input: 'is_palindrome("A man, a plan, a canal: Panama")',
           expected: "true",
           description: "Classic palindrome with punctuation",
         },
         {
-          input: 'isPalindrome("race a car")',
+          input: 'is_palindrome("race a car")',
           expected: "false",
           description: "Not a palindrome",
         },
         {
-          input: 'isPalindrome(" ")',
+          input: 'is_palindrome(" ")',
           expected: "true",
           description: "Empty after filtering",
         },
@@ -728,63 +719,59 @@ function isAlphanumeric(c) {
           output: '"bb"',
         },
       ],
-      starterCode: `function longestPalindrome(s) {
-  // Your solution here
+      starterCode: `def longest_palindrome(s):
+    # Your solution here
+    pass`,
+      solution: `def longest_palindrome(s):
+    if len(s) < 2:
+        return s
 
-}`,
-      solution: `function longestPalindrome(s) {
-  if (s.length < 2) return s;
+    start = 0
+    max_len = 1
 
-  let start = 0;
-  let maxLen = 1;
+    def expand_from_center(left, right):
+        nonlocal start, max_len
+        while left >= 0 and right < len(s) and s[left] == s[right]:
+            length = right - left + 1
+            if length > max_len:
+                start = left
+                max_len = length
+            left -= 1
+            right += 1
 
-  function expandFromCenter(left, right) {
-    while (left >= 0 && right < s.length && s[left] === s[right]) {
-      const len = right - left + 1;
-      if (len > maxLen) {
-        start = left;
-        maxLen = len;
-      }
-      left--;
-      right++;
-    }
-  }
+    for i in range(len(s)):
+        # Odd length palindrome
+        expand_from_center(i, i)
+        # Even length palindrome
+        expand_from_center(i, i + 1)
 
-  for (let i = 0; i < s.length; i++) {
-    // Odd length palindrome
-    expandFromCenter(i, i);
-    // Even length palindrome
-    expandFromCenter(i, i + 1);
-  }
-
-  return s.substring(start, start + maxLen);
-}`,
+    return s[start:start + max_len]`,
       hints: [
-        "Brute force: check all substrings O(n³). Can we do better?",
+        "Brute force: check all substrings O(n^3). Can we do better?",
         "A palindrome expands equally from its center.",
         "Try each position as a center and expand outward.",
         "Handle both odd-length (single center) and even-length (two centers) cases.",
       ],
       testCases: [
         {
-          input: '["bab", "aba"].includes(longestPalindrome("babad"))',
+          input: 'longest_palindrome("babad") in ["bab", "aba"]',
           expected: "true",
           description: "Multiple valid answers",
         },
         {
-          input: 'longestPalindrome("cbbd")',
+          input: 'longest_palindrome("cbbd")',
           expected: '"bb"',
           description: "Even length palindrome",
         },
         {
-          input: 'longestPalindrome("a")',
+          input: 'longest_palindrome("a")',
           expected: '"a"',
           description: "Single character",
         },
       ],
     },
     {
-      id: "longest-substring-no-repeat",
+      id: "strings-longest-substring-no-repeat",
       title: "Longest Substring Without Repeating Characters",
       difficulty: "medium",
       description:
@@ -804,29 +791,23 @@ function isAlphanumeric(c) {
           output: "3",
         },
       ],
-      starterCode: `function lengthOfLongestSubstring(s) {
-  // Your solution here
+      starterCode: `def length_of_longest_substring(s):
+    # Your solution here
+    pass`,
+      solution: `def length_of_longest_substring(s):
+    seen = {}  # char -> last index
+    left = 0
+    max_len = 0
 
-}`,
-      solution: `function lengthOfLongestSubstring(s) {
-  const seen = {}; // char -> last index
-  let left = 0;
-  let maxLen = 0;
+    for right, char in enumerate(s):
+        # If char seen and within current window, move left past it
+        if char in seen and seen[char] >= left:
+            left = seen[char] + 1
 
-  for (let right = 0; right < s.length; right++) {
-    const char = s[right];
+        seen[char] = right
+        max_len = max(max_len, right - left + 1)
 
-    // If char seen and within current window, move left past it
-    if (seen[char] !== undefined && seen[char] >= left) {
-      left = seen[char] + 1;
-    }
-
-    seen[char] = right;
-    maxLen = Math.max(maxLen, right - left + 1);
-  }
-
-  return maxLen;
-}`,
+    return max_len`,
       hints: [
         "This is a sliding window problem.",
         "Track the last index where each character was seen.",
@@ -835,22 +816,22 @@ function isAlphanumeric(c) {
       ],
       testCases: [
         {
-          input: 'lengthOfLongestSubstring("abcabcbb")',
+          input: 'length_of_longest_substring("abcabcbb")',
           expected: "3",
           description: "Standard case",
         },
         {
-          input: 'lengthOfLongestSubstring("bbbbb")',
+          input: 'length_of_longest_substring("bbbbb")',
           expected: "1",
           description: "All same characters",
         },
         {
-          input: 'lengthOfLongestSubstring("pwwkew")',
+          input: 'length_of_longest_substring("pwwkew")',
           expected: "3",
           description: "Multiple valid substrings",
         },
         {
-          input: 'lengthOfLongestSubstring("")',
+          input: 'length_of_longest_substring("")',
           expected: "0",
           description: "Empty string",
         },
@@ -861,7 +842,7 @@ function isAlphanumeric(c) {
       title: "String to Integer (atoi)",
       difficulty: "medium",
       description:
-        "Implement the myAtoi function, which converts a string to a 32-bit signed integer. Handle leading whitespace, optional sign, and overflow.",
+        "Implement the my_atoi function, which converts a string to a 32-bit signed integer. Handle leading whitespace, optional sign, and overflow.",
       examples: [
         {
           input: 's = "42"',
@@ -878,47 +859,42 @@ function isAlphanumeric(c) {
           explanation: "Stops at non-digit.",
         },
       ],
-      starterCode: `function myAtoi(s) {
-  // Your solution here
+      starterCode: `def my_atoi(s):
+    # Your solution here
+    pass`,
+      solution: `def my_atoi(s):
+    INT_MAX = 2147483647
+    INT_MIN = -2147483648
 
-}`,
-      solution: `function myAtoi(s) {
-  const INT_MAX = 2147483647;
-  const INT_MIN = -2147483648;
+    i = 0
+    n = len(s)
 
-  let i = 0;
-  const n = s.length;
+    # Skip leading whitespace
+    while i < n and s[i] == ' ':
+        i += 1
 
-  // Skip leading whitespace
-  while (i < n && s[i] === ' ') {
-    i++;
-  }
+    if i == n:
+        return 0
 
-  if (i === n) return 0;
+    # Check sign
+    sign = 1
+    if s[i] == '+' or s[i] == '-':
+        sign = -1 if s[i] == '-' else 1
+        i += 1
 
-  // Check sign
-  let sign = 1;
-  if (s[i] === '+' || s[i] === '-') {
-    sign = s[i] === '-' ? -1 : 1;
-    i++;
-  }
+    # Parse digits
+    result = 0
+    while i < n and s[i].isdigit():
+        digit = int(s[i])
 
-  // Parse digits
-  let result = 0;
-  while (i < n && s[i] >= '0' && s[i] <= '9') {
-    const digit = s[i].charCodeAt(0) - '0'.charCodeAt(0);
+        # Check overflow before adding
+        if result > (INT_MAX - digit) // 10:
+            return INT_MAX if sign == 1 else INT_MIN
 
-    // Check overflow before adding
-    if (result > Math.floor((INT_MAX - digit) / 10)) {
-      return sign === 1 ? INT_MAX : INT_MIN;
-    }
+        result = result * 10 + digit
+        i += 1
 
-    result = result * 10 + digit;
-    i++;
-  }
-
-  return sign * result;
-}`,
+    return sign * result`,
       hints: [
         "Handle edge cases in order: whitespace, sign, digits, overflow.",
         "Stop parsing at the first non-digit character.",
@@ -927,29 +903,29 @@ function isAlphanumeric(c) {
       ],
       testCases: [
         {
-          input: 'myAtoi("42")',
+          input: 'my_atoi("42")',
           expected: "42",
           description: "Simple positive",
         },
         {
-          input: 'myAtoi("   -42")',
+          input: 'my_atoi("   -42")',
           expected: "-42",
           description: "Whitespace and sign",
         },
         {
-          input: 'myAtoi("4193 with words")',
+          input: 'my_atoi("4193 with words")',
           expected: "4193",
           description: "Stops at non-digit",
         },
         {
-          input: 'myAtoi("-91283472332")',
+          input: 'my_atoi("-91283472332")',
           expected: "-2147483648",
           description: "Underflow clamping",
         },
       ],
     },
     {
-      id: "group-anagrams",
+      id: "strings-group-anagrams",
       title: "Group Anagrams",
       difficulty: "medium",
       description:
@@ -964,25 +940,19 @@ function isAlphanumeric(c) {
           output: '[[""]]',
         },
       ],
-      starterCode: `function groupAnagrams(strs) {
-  // Your solution here
+      starterCode: `def group_anagrams(strs):
+    # Your solution here
+    pass`,
+      solution: `def group_anagrams(strs):
+    from collections import defaultdict
+    groups = defaultdict(list)
 
-}`,
-      solution: `function groupAnagrams(strs) {
-  const groups = {};
+    for s in strs:
+        # Use sorted string as key
+        key = ''.join(sorted(s))
+        groups[key].append(s)
 
-  for (const s of strs) {
-    // Use sorted string as key
-    const key = s.split('').sort().join('');
-
-    if (!groups[key]) {
-      groups[key] = [];
-    }
-    groups[key].push(s);
-  }
-
-  return Object.values(groups);
-}`,
+    return list(groups.values())`,
       hints: [
         "Anagrams have the same characters, just rearranged.",
         "If you sort the characters of an anagram, you get the same string.",
@@ -991,17 +961,17 @@ function isAlphanumeric(c) {
       ],
       testCases: [
         {
-          input: 'groupAnagrams(["eat","tea","tan","ate","nat","bat"]).map(g => g.sort()).sort((a,b) => a[0].localeCompare(b[0]))',
-          expected: JSON.stringify([["ate", "eat", "tea"], ["bat"], ["nat", "tan"]]),
-          description: "Standard grouping",
+          input: 'len(group_anagrams(["eat","tea","tan","ate","nat","bat"]))',
+          expected: "3",
+          description: "Standard grouping - 3 groups",
         },
         {
-          input: 'groupAnagrams([""])',
+          input: 'group_anagrams([""])',
           expected: '[[""]]',
           description: "Empty string",
         },
         {
-          input: 'groupAnagrams(["a"])',
+          input: 'group_anagrams(["a"])',
           expected: '[["a"]]',
           description: "Single character",
         },

@@ -157,7 +157,47 @@ export function PatternFirstView({ topic }: Props) {
 
       {/* Main content */}
       <div className="px-4 sm:px-8 lg:px-12 py-6 sm:py-8 lg:py-10 max-w-4xl">
+        {/* Concept sections - foundational knowledge */}
+        {topic.sections && topic.sections.length > 0 && (
+          <div className="mb-12">
+            {topic.sections.map((section, i) => (
+              <motion.section
+                key={section.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                className="mb-10 pb-8 border-b border-[var(--color-border)] last:border-b-0"
+              >
+                <div className="mb-4">
+                  {section.subtitle && (
+                    <p className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: "var(--color-accent)" }}>
+                      {section.subtitle}
+                    </p>
+                  )}
+                  <h3
+                    className="text-xl tracking-tight"
+                    style={{ fontFamily: "var(--font-display)" }}
+                  >
+                    {section.title}
+                  </h3>
+                </div>
+                <div className="prose prose-sm max-w-none">
+                  {section.content}
+                </div>
+              </motion.section>
+            ))}
+          </div>
+        )}
+
         {/* Patterns */}
+        <div className="mb-8">
+          <h2
+            className="text-xl tracking-tight mb-6 pb-4 border-b border-[var(--color-border)]"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            Core Patterns
+          </h2>
+        </div>
         {topic.patterns.map((pattern, i) => (
           <PatternSection key={pattern.name} pattern={pattern} index={i} />
         ))}

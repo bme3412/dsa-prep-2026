@@ -23,7 +23,7 @@ export function Sidebar({
   onSelectTopic,
 }: SidebarProps) {
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-[280px] bg-[var(--color-bg-secondary)] border-r border-[var(--color-border)] flex flex-col z-10">
+    <div className="h-full w-full flex flex-col">
       {/* Logo */}
       <div className="px-6 py-6 border-b border-[var(--color-border)]">
         <h1
@@ -116,6 +116,6 @@ export function Sidebar({
           Interview prep for Acadian
         </p>
       </div>
-    </aside>
+    </div>
   );
 }

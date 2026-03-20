@@ -2,64 +2,68 @@ import { CodeBlock } from "../../components/CodeBlock";
 import type { DataStructure } from "../../types";
 
 const Prose = ({ children }: { children: React.ReactNode }) => (
-  <p className="text-sm leading-relaxed text-[var(--color-text-secondary)] mb-3">
+  <p className="text-sm leading-relaxed text-[var(--color-text-secondary)] mb-4">
     {children}
   </p>
 );
 
-const Code = ({ children, language = "python" }: { children: string; language?: "python" | "typescript" | "javascript" }) => (
+const Code = ({ children }: { children: string }) => (
   <div className="my-4">
-    <CodeBlock code={children.trim()} language={language} />
+    <CodeBlock code={children.trim()} language="python" />
   </div>
 );
 
 const Callout = ({
   type,
+  title,
   children,
 }: {
-  type: "tip" | "warning" | "insight";
+  type: "tip" | "warning" | "example";
+  title?: string;
   children: React.ReactNode;
 }) => {
   const colors = {
     tip: { bg: "var(--color-green)", border: "var(--color-green)" },
     warning: { bg: "var(--color-coral)", border: "var(--color-coral)" },
-    insight: { bg: "var(--color-teal)", border: "var(--color-teal)" },
+    example: { bg: "var(--color-accent)", border: "var(--color-accent)" },
   };
-  const icons = { tip: "💡", warning: "⚠️", insight: "🔍" };
+  const icons = { tip: "💡", warning: "⚠️", example: "🔍" };
   return (
     <div
       className="rounded-lg p-4 my-4 text-sm"
       style={{
-        background: `${colors[type].bg}15`,
+        background: `${colors[type].bg}10`,
         borderLeft: `3px solid ${colors[type].border}`,
       }}
     >
-      <span className="mr-2">{icons[type]}</span>
-      {children}
+      {title && (
+        <p className="font-semibold mb-2" style={{ color: colors[type].border }}>
+          {icons[type]} {title}
+        </p>
+      )}
+      <div style={{ color: "var(--color-text-secondary)" }}>{children}</div>
     </div>
   );
 };
 
-const MethodTable = ({ methods }: { methods: { name: string; desc: string; complexity: string }[] }) => (
-  <div className="overflow-x-auto my-4">
-    <table className="w-full text-xs">
-      <thead>
-        <tr style={{ borderBottom: "1px solid var(--color-border)" }}>
-          <th className="text-left py-2 px-3 font-semibold" style={{ color: "var(--color-text-primary)" }}>Method</th>
-          <th className="text-left py-2 px-3 font-semibold" style={{ color: "var(--color-text-primary)" }}>Description</th>
-          <th className="text-left py-2 px-3 font-semibold" style={{ color: "var(--color-text-primary)" }}>Time</th>
-        </tr>
-      </thead>
-      <tbody>
-        {methods.map((m, i) => (
-          <tr key={i} style={{ borderBottom: "1px solid var(--color-border)" }}>
-            <td className="py-2 px-3 font-mono" style={{ color: "var(--color-accent)" }}>{m.name}</td>
-            <td className="py-2 px-3" style={{ color: "var(--color-text-secondary)" }}>{m.desc}</td>
-            <td className="py-2 px-3 font-mono" style={{ color: "var(--color-teal)" }}>{m.complexity}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+const FunctionCard = ({ name, syntax, description, example }: {
+  name: string;
+  syntax: string;
+  description: string;
+  example: string;
+}) => (
+  <div className="border border-[var(--color-border)] rounded-lg p-4 my-3">
+    <div className="flex items-center gap-2 mb-2">
+      <code className="text-sm font-semibold px-2 py-0.5 rounded" style={{
+        background: "var(--color-accent-glow)",
+        color: "var(--color-accent)"
+      }}>
+        {name}
+      </code>
+    </div>
+    <p className="text-xs text-[var(--color-text-muted)] mb-2">{syntax}</p>
+    <p className="text-sm text-[var(--color-text-secondary)] mb-3">{description}</p>
+    <CodeBlock code={example.trim()} language="python" />
   </div>
 );
 
@@ -67,625 +71,1046 @@ export const liveCodingContent: DataStructure = {
   id: "live-coding",
   name: "Live Coding",
   icon: "⚡",
-  tagline: "Python patterns and utilities for timed coding tests",
+  tagline: "Python essentials for timed coding interviews",
   description:
-    "Master the essential Python patterns and built-in methods for HackerRank, CoderPad, and phone screen interviews. Focus on speed, correctness, and clear communication.",
+    "A walkthrough of Python's most useful functions, methods, and patterns for solving coding problems quickly and correctly under time pressure.",
   color: "green",
   viewMode: "pattern-first",
 
   sections: [
-    // ==================== SECTION 1: STRATEGY ====================
+    // ==================== SECTION 1: OVERVIEW ====================
     {
-      id: "strategy",
-      title: "Live Coding Strategy",
-      subtitle: "Time management and communication under pressure",
+      id: "overview",
+      title: "The Live Coding Mindset",
+      subtitle: "How to approach timed coding problems",
       content: (
         <>
           <Prose>
-            Live coding interviews test more than algorithms — they test how you think, communicate, and handle pressure. The difference between passing and failing often comes down to process, not just code correctness.
+            Live coding interviews aren't just about knowing algorithms — they test your ability to think clearly under pressure, communicate your approach, and write clean code quickly. The key is having a mental toolkit of Python patterns that you can reach for instinctively.
           </Prose>
 
-          <Callout type="tip">
-            <strong>The 45-Minute Framework:</strong> 5 min understand → 10 min plan → 20 min code → 10 min test/optimize
+          <Prose>
+            This module walks you through Python's most powerful built-in functions and methods. For each one, you'll see what it does, when to use it, and a real example of how it solves a coding problem. The goal is that when you see a problem, you'll immediately recognize which tools to reach for.
+          </Prose>
+
+          <Callout type="tip" title="The 5-Minute Rule">
+            Before writing any code, spend 5 minutes understanding the problem. Ask clarifying questions: What's the input size? Are there edge cases? What should I return? Restate the problem in your own words. This prevents you from solving the wrong problem.
           </Callout>
 
           <Prose>
-            <strong>Step 1: Understand (5 min)</strong> — Before writing any code, clarify the problem completely. Ask about input constraints (size, range, sorted?), edge cases (empty input, duplicates, negative numbers?), and expected output format. Restate the problem in your own words to confirm understanding.
+            <strong>What we'll cover:</strong> We'll start with Python's essential built-in functions, then move to string and list methods, dictionaries, the collections module, and finally show how these combine to solve common interview patterns.
           </Prose>
-
-          <Prose>
-            <strong>Step 2: Plan (10 min)</strong> — Walk through your approach verbally before coding. Identify the pattern (two pointers? sliding window? hashmap?). Discuss time/space complexity. The interviewer wants to see your thought process, not just a working solution.
-          </Prose>
-
-          <Prose>
-            <strong>Step 3: Code (20 min)</strong> — Write clean, readable code. Use descriptive variable names. Talk through what you're doing as you code. Don't optimize prematurely — get a working solution first.
-          </Prose>
-
-          <Prose>
-            <strong>Step 4: Test (10 min)</strong> — Trace through your code with a simple example. Then test edge cases: empty input, single element, all same values, maximum size. Fix bugs incrementally.
-          </Prose>
-
-          <Callout type="warning">
-            <strong>When stuck:</strong> (1) Simplify — solve a smaller version first. (2) Brute force — O(n²) that works beats O(n) that doesn't. (3) Talk it out — your thought process matters even if you don't finish.
-          </Callout>
-
-          <Prose>
-            <strong>Clarifying Questions Checklist:</strong>
-          </Prose>
-          <Code>{`
-# Always ask:
-# 1. Input size? (affects time complexity choice)
-# 2. Input sorted? (enables binary search, two pointers)
-# 3. Duplicates allowed? (affects set vs list choice)
-# 4. Negative numbers? (affects sum problems)
-# 5. Return format? (indices vs values, list vs count)
-# 6. Modify in-place or return new? (space constraints)
-`}</Code>
         </>
       ),
     },
 
-    // ==================== SECTION 2: PYTHON SPEED TIPS ====================
+    // ==================== SECTION 2: BUILT-IN FUNCTIONS ====================
     {
-      id: "python-tips",
-      title: "Python Speed Tips",
-      subtitle: "Built-in shortcuts that save precious minutes",
+      id: "builtins",
+      title: "Essential Built-in Functions",
+      subtitle: "The functions you'll use in almost every problem",
       content: (
         <>
           <Prose>
-            Python's standard library has powerful one-liners that can replace 10+ lines of code. Knowing these saves time and reduces bugs. Here are the most interview-relevant shortcuts:
+            Python's built-in functions are your first line of attack. These are globally available — no imports needed — and they're optimized for performance. Knowing these well means you can solve many problems in just a few lines.
           </Prose>
 
-          <Code>{`
-# List comprehensions — filter and transform in one line
-squares = [x**2 for x in range(10)]
-evens = [x for x in nums if x % 2 == 0]
-pairs = [(i, j) for i in range(3) for j in range(3)]
+          <FunctionCard
+            name="len()"
+            syntax="len(sequence) → int"
+            description="Returns the number of items in a sequence (string, list, dict, set). This is O(1) for all built-in types — Python stores the length, it doesn't count."
+            example={`
+# Check if empty
+if len(arr) == 0:  # or just: if not arr:
+    return []
 
-# Dictionary comprehensions
-freq = {c: s.count(c) for c in set(s)}  # char frequency
-index_map = {v: i for i, v in enumerate(arr)}  # value to index
+# Get last element safely
+last = arr[-1] if len(arr) > 0 else None
 
-# Set comprehensions
-unique_lengths = {len(word) for word in words}
-`}</Code>
+# Common pattern: iterate with index
+for i in range(len(arr)):
+    print(f"Index {i}: {arr[i]}")
+`}
+          />
 
-          <Prose>
-            <strong>Unpacking and multiple assignment</strong> — Swap without temp, unpack tuples, and use starred expressions:
-          </Prose>
+          <FunctionCard
+            name="sum()"
+            syntax="sum(iterable, start=0) → number"
+            description="Adds all items in an iterable. The optional start parameter lets you add to an existing total. Great for quick totals without writing loops."
+            example={`
+nums = [1, 2, 3, 4, 5]
 
-          <Code>{`
-# Swap two values
-a, b = b, a
+total = sum(nums)  # 15
 
-# Unpack with *
-first, *middle, last = [1, 2, 3, 4, 5]  # first=1, middle=[2,3,4], last=5
+# Sum with condition using generator
+even_sum = sum(x for x in nums if x % 2 == 0)  # 6
 
-# Multiple assignment
-x = y = z = 0  # all three point to 0
-`}</Code>
+# Sum of absolute values
+abs_sum = sum(abs(x) for x in [-1, 2, -3])  # 6
 
-          <Prose>
-            <strong>Essential built-in functions:</strong>
-          </Prose>
+# Problem: Check if array can be split into equal halves
+def can_split_equal(arr):
+    total = sum(arr)
+    if total % 2 != 0:
+        return False
+    # ... find subset that sums to total // 2
+`}
+          />
 
-          <MethodTable methods={[
-            { name: "enumerate(arr)", desc: "Iterate with index", complexity: "O(1) per item" },
-            { name: "zip(a, b)", desc: "Pair elements from two lists", complexity: "O(1) per pair" },
-            { name: "sorted(arr, key=...)", desc: "Sort with custom key", complexity: "O(n log n)" },
-            { name: "reversed(arr)", desc: "Iterate in reverse (iterator)", complexity: "O(1)" },
-            { name: "any(iterable)", desc: "True if any element truthy", complexity: "O(n) worst" },
-            { name: "all(iterable)", desc: "True if all elements truthy", complexity: "O(n) worst" },
-            { name: "sum(arr)", desc: "Sum all elements", complexity: "O(n)" },
-            { name: "min/max(arr)", desc: "Find min/max value", complexity: "O(n)" },
-          ]} />
+          <FunctionCard
+            name="min() / max()"
+            syntax="min(iterable) or min(a, b, ...) → smallest item"
+            description="Find the smallest or largest item. With the key parameter, you can compare by a computed value — extremely powerful for finding 'best' items by some criteria."
+            example={`
+nums = [3, 1, 4, 1, 5]
 
-          <Callout type="insight">
-            <strong>Gotcha:</strong> <code>sorted()</code> returns a new list, while <code>list.sort()</code> sorts in-place and returns None. Don't do <code>arr = arr.sort()</code> — you'll get None!
-          </Callout>
+smallest = min(nums)  # 1
+largest = max(nums)   # 5
+
+# With key function - find shortest string
+words = ["apple", "pie", "a", "banana"]
+shortest = min(words, key=len)  # "a"
+
+# Find person with highest score
+people = [("Alice", 85), ("Bob", 92), ("Carol", 78)]
+top_scorer = max(people, key=lambda p: p[1])  # ("Bob", 92)
+
+# Problem: Find closest value to target
+def closest_to(arr, target):
+    return min(arr, key=lambda x: abs(x - target))
+`}
+          />
+
+          <FunctionCard
+            name="sorted()"
+            syntax="sorted(iterable, key=None, reverse=False) → list"
+            description="Returns a NEW sorted list. Unlike list.sort(), this works on any iterable and doesn't modify the original. The key parameter is where the magic happens."
+            example={`
+nums = [3, 1, 4, 1, 5]
+sorted_nums = sorted(nums)  # [1, 1, 3, 4, 5] - original unchanged
+
+# Sort strings by length
+words = ["banana", "pie", "apple"]
+by_length = sorted(words, key=len)  # ["pie", "apple", "banana"]
+
+# Sort tuples by second element, descending
+pairs = [(1, 'b'), (2, 'a'), (3, 'c')]
+by_second = sorted(pairs, key=lambda x: x[1])  # [(2,'a'), (1,'b'), (3,'c')]
+
+# Multi-level sort: by length, then alphabetically
+words = ["cat", "apple", "bat", "dog"]
+result = sorted(words, key=lambda w: (len(w), w))
+# ["bat", "cat", "dog", "apple"]
+
+# Problem: Sort intervals by start time
+intervals = [[1,3], [2,6], [8,10]]
+sorted_intervals = sorted(intervals, key=lambda x: x[0])
+`}
+          />
+
+          <FunctionCard
+            name="enumerate()"
+            syntax="enumerate(iterable, start=0) → iterator of (index, item)"
+            description="When you need both the index AND the value while iterating. This is more Pythonic than using range(len(arr)) and accessing arr[i]."
+            example={`
+fruits = ["apple", "banana", "cherry"]
+
+# Instead of this:
+for i in range(len(fruits)):
+    print(i, fruits[i])
+
+# Do this:
+for i, fruit in enumerate(fruits):
+    print(i, fruit)
+
+# Start counting from 1
+for rank, name in enumerate(["Alice", "Bob"], start=1):
+    print(f"#{rank}: {name}")
+
+# Problem: Find indices of all target values
+def find_all_indices(arr, target):
+    return [i for i, val in enumerate(arr) if val == target]
+`}
+          />
+
+          <FunctionCard
+            name="zip()"
+            syntax="zip(iter1, iter2, ...) → iterator of tuples"
+            description="Pairs up elements from multiple iterables. Stops at the shortest one. Perfect for iterating over two lists in parallel or creating dictionaries from two lists."
+            example={`
+names = ["Alice", "Bob", "Carol"]
+scores = [85, 92, 78]
+
+# Iterate in parallel
+for name, score in zip(names, scores):
+    print(f"{name}: {score}")
+
+# Create dictionary from two lists
+name_to_score = dict(zip(names, scores))
+# {"Alice": 85, "Bob": 92, "Carol": 78}
+
+# Unzip (transpose) with *
+pairs = [(1, 'a'), (2, 'b'), (3, 'c')]
+nums, letters = zip(*pairs)
+# nums = (1, 2, 3), letters = ('a', 'b', 'c')
+
+# Problem: Check if two strings are equal character by character
+def compare_chars(s1, s2):
+    return all(c1 == c2 for c1, c2 in zip(s1, s2)) and len(s1) == len(s2)
+`}
+          />
+
+          <FunctionCard
+            name="any() / all()"
+            syntax="any(iterable) → bool / all(iterable) → bool"
+            description="any() returns True if ANY element is truthy. all() returns True if ALL elements are truthy. These short-circuit — they stop as soon as the answer is known."
+            example={`
+nums = [0, 1, 2, 3]
+
+any(nums)  # True (1, 2, 3 are truthy)
+all(nums)  # False (0 is falsy)
+
+# Check if any number is negative
+has_negative = any(x < 0 for x in nums)
+
+# Check if all strings are non-empty
+words = ["hello", "world", ""]
+all_non_empty = all(words)  # False
+
+# Problem: Check if any two elements sum to target
+def has_pair_with_sum(arr, target):
+    seen = set()
+    return any((target - x) in seen or not seen.add(x) for x in arr)
+    # Note: set.add returns None (falsy), so "or not seen.add(x)" always continues
+`}
+          />
+
+          <FunctionCard
+            name="reversed()"
+            syntax="reversed(sequence) → iterator"
+            description="Returns an iterator that yields items in reverse order. More memory-efficient than slicing [::-1] for large sequences since it doesn't create a copy."
+            example={`
+nums = [1, 2, 3, 4, 5]
+
+# Iterate in reverse
+for x in reversed(nums):
+    print(x)  # 5, 4, 3, 2, 1
+
+# Convert to list if needed
+rev_list = list(reversed(nums))
+
+# For strings, you need to join
+s = "hello"
+rev_string = "".join(reversed(s))  # "olleh"
+# Or just use slicing: s[::-1]
+
+# Problem: Check palindrome
+def is_palindrome(s):
+    return s == s[::-1]
+    # or: return all(a == b for a, b in zip(s, reversed(s)))
+`}
+          />
+
+          <FunctionCard
+            name="map() / filter()"
+            syntax="map(func, iterable) → iterator / filter(func, iterable) → iterator"
+            description="map applies a function to every item. filter keeps only items where the function returns True. Often list comprehensions are clearer, but these are useful for simple transformations."
+            example={`
+nums = [1, 2, 3, 4, 5]
+
+# map: apply function to all
+squares = list(map(lambda x: x**2, nums))  # [1, 4, 9, 16, 25]
+# Equivalent: [x**2 for x in nums]
+
+# filter: keep matching items
+evens = list(filter(lambda x: x % 2 == 0, nums))  # [2, 4]
+# Equivalent: [x for x in nums if x % 2 == 0]
+
+# map with multiple iterables
+sums = list(map(lambda a, b: a + b, [1, 2], [10, 20]))  # [11, 22]
+
+# Convert strings to ints
+str_nums = ["1", "2", "3"]
+int_nums = list(map(int, str_nums))  # [1, 2, 3]
+`}
+          />
         </>
       ),
     },
 
-    // ==================== SECTION 3: STRING PATTERNS ====================
+    // ==================== SECTION 3: STRING METHODS ====================
     {
       id: "strings",
-      title: "String Patterns",
-      subtitle: "Manipulation, comparison, and transformation",
+      title: "String Methods",
+      subtitle: "Manipulating and analyzing text",
       content: (
         <>
           <Prose>
-            Strings are immutable in Python — every "modification" creates a new string. This affects both your approach and complexity analysis. For repeated concatenation, use <code>list.append()</code> + <code>"".join()</code> instead of <code>+=</code>.
+            Strings are immutable in Python — every "modification" creates a new string. This matters for performance: if you're building a string character by character, use a list and join at the end, not repeated concatenation.
           </Prose>
 
-          <MethodTable methods={[
-            { name: "s.split(sep)", desc: "Split into list by separator", complexity: "O(n)" },
-            { name: '"".join(list)', desc: "Join list into string", complexity: "O(n)" },
-            { name: "s.strip()", desc: "Remove leading/trailing whitespace", complexity: "O(n)" },
-            { name: "s.replace(old, new)", desc: "Replace all occurrences", complexity: "O(n)" },
-            { name: "s[::-1]", desc: "Reverse string", complexity: "O(n)" },
-            { name: "s.lower() / s.upper()", desc: "Case conversion", complexity: "O(n)" },
-            { name: "s.isalnum() / isdigit()", desc: "Character type check", complexity: "O(n)" },
-            { name: "ord(c) / chr(n)", desc: "Char ↔ ASCII code", complexity: "O(1)" },
-          ]} />
+          <Prose>
+            Here are the string methods you'll reach for most often in coding interviews:
+          </Prose>
 
-          <Code>{`
-# Palindrome check — two pointers
-def is_palindrome(s: str) -> bool:
-    s = s.lower()
-    left, right = 0, len(s) - 1
-    while left < right:
-        while left < right and not s[left].isalnum():
-            left += 1
-        while left < right and not s[right].isalnum():
-            right -= 1
-        if s[left] != s[right]:
-            return False
-        left += 1
-        right -= 1
-    return True
-`}</Code>
+          <FunctionCard
+            name="split() / join()"
+            syntax="str.split(sep) → list / sep.join(list) → str"
+            description="split breaks a string into a list. join combines a list into a string. These are inverses of each other and incredibly common."
+            example={`
+s = "hello world python"
 
-          <Code>{`
-# Anagram check — Counter comparison
-from collections import Counter
+words = s.split()  # ["hello", "world", "python"] - splits on whitespace
+words = s.split(" ")  # same, explicit space
 
-def is_anagram(s: str, t: str) -> bool:
-    return Counter(s) == Counter(t)
+# Split on specific character
+csv = "a,b,c,d"
+parts = csv.split(",")  # ["a", "b", "c", "d"]
 
-# Or without Counter:
-def is_anagram_alt(s: str, t: str) -> bool:
-    return sorted(s) == sorted(t)  # O(n log n)
-`}</Code>
+# Join back together
+"-".join(parts)  # "a-b-c-d"
+"".join(parts)   # "abcd" - no separator
 
-          <Code>{`
-# Character frequency — the Counter pattern
-from collections import Counter
+# Problem: Reverse words in a sentence
+def reverse_words(s):
+    return " ".join(s.split()[::-1])
 
-s = "abracadabra"
-freq = Counter(s)  # Counter({'a': 5, 'b': 2, 'r': 2, 'c': 1, 'd': 1})
-freq.most_common(2)  # [('a', 5), ('b', 2)]
+reverse_words("hello world")  # "world hello"
+`}
+          />
 
-# Manual frequency counting:
-freq = {}
-for c in s:
-    freq[c] = freq.get(c, 0) + 1
-`}</Code>
+          <FunctionCard
+            name="strip() / lstrip() / rstrip()"
+            syntax="str.strip(chars) → str"
+            description="Remove leading/trailing whitespace (or specified characters). Essential for cleaning user input or parsing data."
+            example={`
+s = "  hello world  "
 
-          <Callout type="tip">
-            <strong>String building pattern:</strong> Avoid <code>result += char</code> in a loop — it's O(n²). Use <code>chars = []</code>, <code>chars.append(char)</code>, then <code>"".join(chars)</code>.
-          </Callout>
+s.strip()   # "hello world" - both ends
+s.lstrip()  # "hello world  " - left only
+s.rstrip()  # "  hello world" - right only
+
+# Remove specific characters
+"...hello...".strip(".")  # "hello"
+"xxhelloxx".strip("x")    # "hello"
+
+# Problem: Clean and compare strings
+def clean_compare(s1, s2):
+    return s1.strip().lower() == s2.strip().lower()
+`}
+          />
+
+          <FunctionCard
+            name="replace()"
+            syntax="str.replace(old, new, count) → str"
+            description="Replace all occurrences of a substring. The optional count limits replacements. Returns a new string."
+            example={`
+s = "hello world"
+
+s.replace("world", "python")  # "hello python"
+s.replace("l", "L")           # "heLLo worLd"
+s.replace("l", "L", 1)        # "heLlo world" - only first
+
+# Remove all spaces
+"h e l l o".replace(" ", "")  # "hello"
+
+# Problem: Compress string (basic)
+def simple_compress(s):
+    return s.replace("  ", " ")  # collapse double spaces
+`}
+          />
+
+          <FunctionCard
+            name="find() / index() / count()"
+            syntax="str.find(sub) → int / str.count(sub) → int"
+            description="find returns the index of first occurrence (-1 if not found). index is similar but raises ValueError. count returns number of occurrences."
+            example={`
+s = "hello hello"
+
+s.find("lo")     # 3 (first occurrence)
+s.find("xyz")    # -1 (not found)
+s.index("lo")    # 3 (raises ValueError if not found)
+
+s.count("l")     # 4
+s.count("hello") # 2
+
+# Problem: Check if substring exists
+def contains(s, sub):
+    return s.find(sub) != -1
+    # or just: return sub in s
+`}
+          />
+
+          <FunctionCard
+            name="startswith() / endswith()"
+            syntax="str.startswith(prefix) → bool"
+            description="Check if string starts/ends with a given prefix/suffix. Can also check multiple options by passing a tuple."
+            example={`
+filename = "report.pdf"
+
+filename.endswith(".pdf")      # True
+filename.startswith("report")  # True
+
+# Check multiple extensions
+filename.endswith((".pdf", ".doc", ".txt"))  # True
+
+# Problem: Filter files by extension
+def get_python_files(files):
+    return [f for f in files if f.endswith(".py")]
+`}
+          />
+
+          <FunctionCard
+            name="isalpha() / isdigit() / isalnum()"
+            syntax="str.isalpha() → bool"
+            description="Check character types. isalpha = letters only, isdigit = numbers only, isalnum = letters or numbers. Useful for validation and filtering."
+            example={`
+"hello".isalpha()   # True
+"hello1".isalpha()  # False
+
+"123".isdigit()     # True
+"12.3".isdigit()    # False (dot isn't a digit)
+
+"hello123".isalnum()  # True
+"hello 123".isalnum() # False (space isn't alphanumeric)
+
+# Problem: Clean string to alphanumeric only
+def clean_string(s):
+    return "".join(c for c in s if c.isalnum())
+
+clean_string("Hello, World! 123")  # "HelloWorld123"
+
+# Problem: Valid palindrome (ignore non-alphanumeric)
+def is_valid_palindrome(s):
+    cleaned = "".join(c.lower() for c in s if c.isalnum())
+    return cleaned == cleaned[::-1]
+`}
+          />
+
+          <FunctionCard
+            name="lower() / upper() / title()"
+            syntax="str.lower() → str"
+            description="Case conversion. lower() and upper() are essential for case-insensitive comparisons."
+            example={`
+"Hello World".lower()  # "hello world"
+"Hello World".upper()  # "HELLO WORLD"
+"hello world".title()  # "Hello World"
+
+# Case-insensitive comparison
+def same_word(a, b):
+    return a.lower() == b.lower()
+
+same_word("Hello", "HELLO")  # True
+`}
+          />
+
+          <FunctionCard
+            name="ord() / chr()"
+            syntax="ord(char) → int / chr(int) → char"
+            description="Convert between characters and their ASCII/Unicode values. Useful for character arithmetic and encoding problems."
+            example={`
+ord('a')  # 97
+ord('A')  # 65
+ord('0')  # 48
+
+chr(97)  # 'a'
+chr(65)  # 'A'
+
+# Character arithmetic
+def next_char(c):
+    return chr(ord(c) + 1)
+
+next_char('a')  # 'b'
+
+# Problem: Check if letters are consecutive
+def is_consecutive(s):
+    return all(ord(s[i+1]) - ord(s[i]) == 1 for i in range(len(s)-1))
+
+is_consecutive("abc")  # True
+is_consecutive("acd")  # False
+`}
+          />
         </>
       ),
     },
 
-    // ==================== SECTION 4: ARRAY PATTERNS ====================
+    // ==================== SECTION 4: LIST METHODS ====================
     {
-      id: "arrays",
-      title: "Array Patterns",
-      subtitle: "Two pointers, prefix sums, and in-place operations",
+      id: "lists",
+      title: "List Methods & Slicing",
+      subtitle: "Working with arrays efficiently",
       content: (
         <>
           <Prose>
-            Arrays (Python lists) are the foundation of most coding problems. The key techniques are two pointers, prefix sums, and in-place modification for O(1) space.
+            Lists are Python's workhorse data structure. Understanding their methods and time complexities is crucial — for example, append is O(1) but insert at the beginning is O(n) because everything shifts.
           </Prose>
 
-          <MethodTable methods={[
-            { name: "arr.append(x)", desc: "Add to end", complexity: "O(1) amortized" },
-            { name: "arr.pop()", desc: "Remove from end", complexity: "O(1)" },
-            { name: "arr.pop(0)", desc: "Remove from start", complexity: "O(n) — use deque!" },
-            { name: "arr.insert(i, x)", desc: "Insert at index", complexity: "O(n)" },
-            { name: "arr[::2]", desc: "Every other element", complexity: "O(n)" },
-            { name: "arr[::-1]", desc: "Reversed copy", complexity: "O(n)" },
-            { name: "arr.sort()", desc: "In-place sort", complexity: "O(n log n)" },
-            { name: "sorted(arr)", desc: "Return sorted copy", complexity: "O(n log n)" },
-          ]} />
+          <FunctionCard
+            name="append() / extend()"
+            syntax="list.append(item) / list.extend(iterable)"
+            description="append adds ONE item to the end (O(1)). extend adds ALL items from an iterable. A common mistake is using append when you mean extend."
+            example={`
+nums = [1, 2, 3]
 
-          <Code>{`
-# Two pointers — opposite ends (sorted array)
-def two_sum_sorted(nums: list[int], target: int) -> list[int]:
-    left, right = 0, len(nums) - 1
-    while left < right:
-        curr_sum = nums[left] + nums[right]
-        if curr_sum == target:
-            return [left, right]
-        elif curr_sum < target:
-            left += 1
-        else:
-            right -= 1
-    return []
-`}</Code>
+nums.append(4)      # [1, 2, 3, 4]
+nums.append([5, 6]) # [1, 2, 3, 4, [5, 6]] - adds list as single item!
 
-          <Code>{`
-# In-place reversal — O(1) space
-def reverse_in_place(arr: list) -> None:
-    left, right = 0, len(arr) - 1
-    while left < right:
-        arr[left], arr[right] = arr[right], arr[left]
-        left += 1
-        right -= 1
-`}</Code>
+nums = [1, 2, 3]
+nums.extend([4, 5]) # [1, 2, 3, 4, 5] - adds each item
 
-          <Code>{`
-# Prefix sum — O(1) range queries after O(n) preprocessing
-def build_prefix_sum(nums: list[int]) -> list[int]:
-    prefix = [0]
-    for num in nums:
-        prefix.append(prefix[-1] + num)
-    return prefix
+# Equivalent ways to extend:
+nums += [6, 7]      # [1, 2, 3, 4, 5, 6, 7]
+nums = nums + [8]   # Creates new list (less efficient)
+`}
+          />
 
-# Sum of nums[i:j] = prefix[j] - prefix[i]
-prefix = build_prefix_sum([1, 2, 3, 4, 5])
-range_sum = prefix[4] - prefix[1]  # sum of [2, 3, 4] = 9
-`}</Code>
+          <FunctionCard
+            name="pop() / remove()"
+            syntax="list.pop(index) → item / list.remove(value)"
+            description="pop removes and returns item at index (default: last). remove deletes first occurrence of a value. pop(-1) is O(1), pop(0) is O(n)."
+            example={`
+nums = [1, 2, 3, 4, 5]
 
-          <Code>{`
-# Kadane's algorithm — maximum subarray sum
-def max_subarray(nums: list[int]) -> int:
-    max_sum = curr_sum = nums[0]
-    for num in nums[1:]:
-        curr_sum = max(num, curr_sum + num)
-        max_sum = max(max_sum, curr_sum)
-    return max_sum
-`}</Code>
+nums.pop()    # returns 5, list is now [1, 2, 3, 4]
+nums.pop(0)   # returns 1, list is now [2, 3, 4] - O(n)!
 
-          <Callout type="warning">
-            <strong>Gotcha:</strong> <code>arr.pop(0)</code> is O(n) because all elements shift. For frequent front removals, use <code>collections.deque</code> with <code>popleft()</code> which is O(1).
-          </Callout>
+nums = [1, 2, 3, 2, 1]
+nums.remove(2)  # [1, 3, 2, 1] - removes FIRST 2 only
+
+# For O(1) removal from front, use collections.deque
+from collections import deque
+d = deque([1, 2, 3])
+d.popleft()  # O(1)
+`}
+          />
+
+          <FunctionCard
+            name="insert()"
+            syntax="list.insert(index, item)"
+            description="Insert item at a specific position. This is O(n) because items after must shift. For frequent insertions, consider a different data structure."
+            example={`
+nums = [1, 3, 4]
+nums.insert(1, 2)  # [1, 2, 3, 4] - insert 2 at index 1
+
+# Insert at beginning (slow - O(n))
+nums.insert(0, 0)  # [0, 1, 2, 3, 4]
+
+# For many insertions, build a new list instead
+# Instead of:
+for item in items_to_insert:
+    nums.insert(0, item)  # O(n²) total!
+
+# Do:
+nums = items_to_insert[::-1] + nums  # O(n)
+`}
+          />
+
+          <FunctionCard
+            name="index() / count()"
+            syntax="list.index(value) → int / list.count(value) → int"
+            description="index finds position of first occurrence (raises ValueError if missing). count returns number of occurrences. Both are O(n)."
+            example={`
+nums = [1, 2, 3, 2, 1]
+
+nums.index(2)   # 1 (first occurrence)
+nums.count(2)   # 2
+
+# Safe index check
+def safe_index(arr, val):
+    try:
+        return arr.index(val)
+    except ValueError:
+        return -1
+
+# Or use: val in arr before calling index
+`}
+          />
+
+          <FunctionCard
+            name="sort() vs sorted()"
+            syntax="list.sort(key, reverse) vs sorted(list, key, reverse)"
+            description="sort() modifies the list in-place and returns None. sorted() returns a new list. Common mistake: x = list.sort() gives you None!"
+            example={`
+nums = [3, 1, 4, 1, 5]
+
+# In-place sort
+nums.sort()  # nums is now [1, 1, 3, 4, 5], returns None
+result = nums.sort()  # result is None! Common bug.
+
+# New sorted list
+nums = [3, 1, 4, 1, 5]
+new_list = sorted(nums)  # [1, 1, 3, 4, 5], nums unchanged
+
+# Reverse sort
+nums.sort(reverse=True)  # [5, 4, 3, 1, 1]
+sorted(nums, reverse=True)
+
+# Custom key
+words = ["banana", "pie", "apple"]
+words.sort(key=len)  # ["pie", "apple", "banana"]
+`}
+          />
+
+          <FunctionCard
+            name="Slicing"
+            syntax="list[start:end:step]"
+            description="Extract portions of a list. The slice creates a new list. This is one of Python's most powerful features."
+            example={`
+nums = [0, 1, 2, 3, 4, 5]
+
+nums[1:4]    # [1, 2, 3] - indices 1, 2, 3
+nums[:3]     # [0, 1, 2] - first 3
+nums[3:]     # [3, 4, 5] - from index 3 to end
+nums[-2:]    # [4, 5] - last 2
+nums[:-2]    # [0, 1, 2, 3] - all except last 2
+
+nums[::2]    # [0, 2, 4] - every other element
+nums[1::2]   # [1, 3, 5] - every other, starting at 1
+nums[::-1]   # [5, 4, 3, 2, 1, 0] - reversed
+
+# Slice assignment
+nums[1:3] = [10, 20]  # [0, 10, 20, 3, 4, 5]
+
+# Problem: Rotate array by k positions
+def rotate(arr, k):
+    k = k % len(arr)  # handle k > len
+    return arr[-k:] + arr[:-k]
+
+rotate([1, 2, 3, 4, 5], 2)  # [4, 5, 1, 2, 3]
+`}
+          />
+
+          <FunctionCard
+            name="List Comprehensions"
+            syntax="[expression for item in iterable if condition]"
+            description="The Pythonic way to transform and filter lists in one line. Master these — they're cleaner and often faster than loops."
+            example={`
+nums = [1, 2, 3, 4, 5]
+
+# Transform
+squares = [x**2 for x in nums]  # [1, 4, 9, 16, 25]
+
+# Filter
+evens = [x for x in nums if x % 2 == 0]  # [2, 4]
+
+# Transform + filter
+even_squares = [x**2 for x in nums if x % 2 == 0]  # [4, 16]
+
+# Nested loops
+pairs = [(x, y) for x in [1, 2] for y in [3, 4]]
+# [(1, 3), (1, 4), (2, 3), (2, 4)]
+
+# 2D list (matrix)
+matrix = [[0] * 3 for _ in range(3)]  # 3x3 zeros
+# NOT: [[0] * 3] * 3  - creates shared references!
+
+# Flatten nested list
+nested = [[1, 2], [3, 4], [5]]
+flat = [x for sublist in nested for x in sublist]  # [1, 2, 3, 4, 5]
+`}
+          />
         </>
       ),
     },
 
-    // ==================== SECTION 5: HASHMAP PATTERNS ====================
+    // ==================== SECTION 5: DICTIONARIES ====================
     {
-      id: "hashmap",
-      title: "HashMap Patterns",
-      subtitle: "Counter, grouping, and complement lookup",
+      id: "dicts",
+      title: "Dictionary Methods",
+      subtitle: "Key-value storage with O(1) lookup",
       content: (
         <>
           <Prose>
-            Hashmaps (Python dicts) provide O(1) average-case lookup. The key patterns are frequency counting, grouping by key, and complement lookup (Two Sum pattern).
+            Dictionaries are hash tables — they give you O(1) average-case lookup, insertion, and deletion. When you need to "remember" values you've seen, count frequencies, or group items, reach for a dictionary.
           </Prose>
 
-          <MethodTable methods={[
-            { name: "d.get(k, default)", desc: "Get with default value", complexity: "O(1)" },
-            { name: "d.setdefault(k, v)", desc: "Get or set default", complexity: "O(1)" },
-            { name: "d.items()", desc: "Key-value pairs iterator", complexity: "O(1)" },
-            { name: "k in d", desc: "Check key exists", complexity: "O(1)" },
-            { name: "Counter(arr)", desc: "Frequency count", complexity: "O(n)" },
-            { name: "defaultdict(list)", desc: "Auto-initialize lists", complexity: "O(1)" },
-          ]} />
+          <FunctionCard
+            name="get()"
+            syntax="dict.get(key, default) → value"
+            description="Retrieve a value without risking KeyError. Returns the default (None if not specified) when key is missing. This is safer than dict[key]."
+            example={`
+scores = {"Alice": 85, "Bob": 92}
+
+scores["Alice"]     # 85
+scores["Carol"]     # KeyError!
+scores.get("Carol") # None
+scores.get("Carol", 0)  # 0 (custom default)
+
+# Common pattern: count with get
+def count_chars(s):
+    counts = {}
+    for c in s:
+        counts[c] = counts.get(c, 0) + 1
+    return counts
+
+count_chars("hello")  # {'h': 1, 'e': 1, 'l': 2, 'o': 1}
+`}
+          />
+
+          <FunctionCard
+            name="setdefault()"
+            syntax="dict.setdefault(key, default) → value"
+            description="Get a key's value, but if missing, set it to default first. Perfect for building dict-of-lists without checking existence."
+            example={`
+groups = {}
+
+# Without setdefault (verbose)
+if "fruits" not in groups:
+    groups["fruits"] = []
+groups["fruits"].append("apple")
+
+# With setdefault (one line)
+groups.setdefault("vegetables", []).append("carrot")
+
+# Problem: Group anagrams
+def group_anagrams(words):
+    groups = {}
+    for word in words:
+        key = "".join(sorted(word))
+        groups.setdefault(key, []).append(word)
+    return list(groups.values())
+`}
+          />
+
+          <FunctionCard
+            name="keys() / values() / items()"
+            syntax="dict.keys() / dict.values() / dict.items()"
+            description="Get views of dictionary contents. items() returns (key, value) pairs — essential for iterating over dictionaries."
+            example={`
+scores = {"Alice": 85, "Bob": 92, "Carol": 78}
+
+list(scores.keys())    # ["Alice", "Bob", "Carol"]
+list(scores.values())  # [85, 92, 78]
+list(scores.items())   # [("Alice", 85), ("Bob", 92), ("Carol", 78)]
+
+# Iterate over both keys and values
+for name, score in scores.items():
+    print(f"{name}: {score}")
+
+# Find key with max value
+best = max(scores.items(), key=lambda x: x[1])  # ("Bob", 92)
+
+# Or more directly:
+best_name = max(scores, key=scores.get)  # "Bob"
+`}
+          />
+
+          <FunctionCard
+            name="Dictionary Comprehensions"
+            syntax="{key: value for item in iterable}"
+            description="Create dictionaries in one line. Works like list comprehensions but produces a dict."
+            example={`
+# Create dict from two lists
+names = ["Alice", "Bob"]
+scores = [85, 92]
+d = {name: score for name, score in zip(names, scores)}
+# {"Alice": 85, "Bob": 92}
+
+# Square numbers as values
+squares = {x: x**2 for x in range(5)}
+# {0: 0, 1: 1, 2: 4, 3: 9, 4: 16}
+
+# Filter while creating
+d = {k: v for k, v in scores.items() if v >= 80}
+
+# Swap keys and values
+inverted = {v: k for k, v in d.items()}
+
+# Problem: Character to index mapping
+def char_to_index(s):
+    return {c: i for i, c in enumerate(s)}
+`}
+          />
+
+          <Callout type="example" title="Two Sum with Dictionary">
+            The classic example of using a dictionary for O(1) lookup:
+          </Callout>
 
           <Code>{`
-# Two Sum — complement lookup pattern
-def two_sum(nums: list[int], target: int) -> list[int]:
+def two_sum(nums, target):
+    """Find two indices that sum to target."""
     seen = {}  # value -> index
+
     for i, num in enumerate(nums):
         complement = target - num
         if complement in seen:
             return [seen[complement], i]
         seen[num] = i
+
     return []
+
+# Without dictionary: O(n²) - check every pair
+# With dictionary: O(n) - single pass
 `}</Code>
+        </>
+      ),
+    },
 
-          <Code>{`
-# Group anagrams — group by sorted key
-from collections import defaultdict
+    // ==================== SECTION 6: COLLECTIONS MODULE ====================
+    {
+      id: "collections",
+      title: "The collections Module",
+      subtitle: "Specialized containers for common patterns",
+      content: (
+        <>
+          <Prose>
+            The collections module provides specialized container types that solve common problems more elegantly than basic dicts and lists. Counter, defaultdict, and deque are the ones you'll use most.
+          </Prose>
 
-def group_anagrams(strs: list[str]) -> list[list[str]]:
-    groups = defaultdict(list)
-    for s in strs:
-        key = tuple(sorted(s))  # or "".join(sorted(s))
-        groups[key].append(s)
-    return list(groups.values())
-`}</Code>
-
-          <Code>{`
-# Frequency counting with Counter
+          <FunctionCard
+            name="Counter"
+            syntax="from collections import Counter"
+            description="A dictionary subclass for counting. Automatically handles missing keys, supports arithmetic operations, and has useful methods like most_common()."
+            example={`
 from collections import Counter
 
-def top_k_frequent(nums: list[int], k: int) -> list[int]:
-    freq = Counter(nums)
-    return [num for num, _ in freq.most_common(k)]
+# Count occurrences
+s = "abracadabra"
+counts = Counter(s)  # Counter({'a': 5, 'b': 2, 'r': 2, 'c': 1, 'd': 1})
+
+counts['a']  # 5
+counts['z']  # 0 (missing keys return 0, not KeyError)
+
+# Most common elements
+counts.most_common(2)  # [('a', 5), ('b', 2)]
 
 # Counter arithmetic
 c1 = Counter("aab")  # Counter({'a': 2, 'b': 1})
 c2 = Counter("abb")  # Counter({'b': 2, 'a': 1})
+
 c1 + c2  # Counter({'a': 3, 'b': 3})
-c1 - c2  # Counter({'a': 1}) — only positive counts kept
-`}</Code>
+c1 - c2  # Counter({'a': 1}) - only keeps positive counts
 
-          <Callout type="insight">
-            <strong>Pattern recognition:</strong> If you need O(1) lookup, think hashmap. If you need to "find pair that sums to X", think complement lookup. If you need counts, think Counter.
-          </Callout>
-        </>
-      ),
-    },
+# Problem: Check anagram
+def is_anagram(s1, s2):
+    return Counter(s1) == Counter(s2)
 
-    // ==================== SECTION 6: SLIDING WINDOW ====================
-    {
-      id: "sliding-window",
-      title: "Sliding Window",
-      subtitle: "Contiguous subarray/substring problems",
-      content: (
-        <>
-          <Prose>
-            Sliding window is the go-to pattern for contiguous subarray or substring problems. There are two variants: <strong>fixed-size</strong> (window size k) and <strong>variable-size</strong> (expand until invalid, shrink until valid).
-          </Prose>
+# Problem: Top K frequent elements
+def top_k_frequent(nums, k):
+    return [x for x, _ in Counter(nums).most_common(k)]
+`}
+          />
 
-          <Callout type="tip">
-            <strong>Triggers:</strong> "contiguous subarray", "substring", "window of size k", "maximum/minimum with constraint"
-          </Callout>
+          <FunctionCard
+            name="defaultdict"
+            syntax="from collections import defaultdict"
+            description="A dict that auto-creates missing values. Specify a factory function (list, int, set) and never worry about KeyError again."
+            example={`
+from collections import defaultdict
 
-          <Code>{`
-# Fixed-size window — max sum of k elements
-def max_sum_k(nums: list[int], k: int) -> int:
-    # Initialize window
-    window_sum = sum(nums[:k])
-    max_sum = window_sum
+# Auto-create lists
+groups = defaultdict(list)
+groups["fruits"].append("apple")  # No need to check if key exists
+groups["fruits"].append("banana")
+# defaultdict(list, {'fruits': ['apple', 'banana']})
 
-    # Slide window
-    for i in range(k, len(nums)):
-        window_sum += nums[i] - nums[i - k]  # add right, remove left
-        max_sum = max(max_sum, window_sum)
+# Auto-create counters
+counts = defaultdict(int)  # int() returns 0
+for char in "hello":
+    counts[char] += 1  # No need for .get() or checking
 
-    return max_sum
-`}</Code>
+# Auto-create sets
+graph = defaultdict(set)
+graph[1].add(2)
+graph[1].add(3)
+graph[2].add(1)
 
-          <Code>{`
-# Variable-size window — longest substring without repeating characters
-def length_of_longest_substring(s: str) -> int:
-    char_index = {}  # char -> last seen index
-    max_length = 0
-    left = 0
+# Problem: Group words by length
+def group_by_length(words):
+    groups = defaultdict(list)
+    for word in words:
+        groups[len(word)].append(word)
+    return dict(groups)
+`}
+          />
 
-    for right, char in enumerate(s):
-        if char in char_index and char_index[char] >= left:
-            left = char_index[char] + 1  # shrink window
-        char_index[char] = right
-        max_length = max(max_length, right - left + 1)
-
-    return max_length
-`}</Code>
-
-          <Code>{`
-# Variable-size window — minimum window containing all characters
-from collections import Counter
-
-def min_window(s: str, t: str) -> str:
-    if not t or not s:
-        return ""
-
-    need = Counter(t)
-    have = {}
-    have_count, need_count = 0, len(need)
-    result = ""
-    left = 0
-
-    for right, char in enumerate(s):
-        # Expand window
-        have[char] = have.get(char, 0) + 1
-        if char in need and have[char] == need[char]:
-            have_count += 1
-
-        # Shrink window while valid
-        while have_count == need_count:
-            if not result or (right - left + 1) < len(result):
-                result = s[left:right + 1]
-
-            left_char = s[left]
-            have[left_char] -= 1
-            if left_char in need and have[left_char] < need[left_char]:
-                have_count -= 1
-            left += 1
-
-    return result
-`}</Code>
-        </>
-      ),
-    },
-
-    // ==================== SECTION 7: BINARY SEARCH ====================
-    {
-      id: "binary-search",
-      title: "Binary Search",
-      subtitle: "O(log n) search and the bisect module",
-      content: (
-        <>
-          <Prose>
-            Binary search halves the search space each iteration, giving O(log n) time on sorted data. Python's <code>bisect</code> module provides optimized implementations.
-          </Prose>
-
-          <MethodTable methods={[
-            { name: "bisect_left(arr, x)", desc: "Leftmost position for x", complexity: "O(log n)" },
-            { name: "bisect_right(arr, x)", desc: "Rightmost position for x", complexity: "O(log n)" },
-            { name: "insort(arr, x)", desc: "Insert maintaining sort", complexity: "O(n)" },
-          ]} />
-
-          <Code>{`
-# Standard binary search template
-def binary_search(arr: list[int], target: int) -> int:
-    left, right = 0, len(arr) - 1
-
-    while left <= right:
-        mid = left + (right - left) // 2  # avoid overflow
-        if arr[mid] == target:
-            return mid
-        elif arr[mid] < target:
-            left = mid + 1
-        else:
-            right = mid - 1
-
-    return -1  # not found
-`}</Code>
-
-          <Code>{`
-# Using bisect for insertion point
-from bisect import bisect_left, bisect_right
-
-arr = [1, 3, 3, 3, 5, 7]
-
-# Find leftmost occurrence
-def first_occurrence(arr, target):
-    i = bisect_left(arr, target)
-    if i < len(arr) and arr[i] == target:
-        return i
-    return -1
-
-# Find rightmost occurrence
-def last_occurrence(arr, target):
-    i = bisect_right(arr, target) - 1
-    if i >= 0 and arr[i] == target:
-        return i
-    return -1
-
-# Count occurrences
-def count_occurrences(arr, target):
-    return bisect_right(arr, target) - bisect_left(arr, target)
-`}</Code>
-
-          <Code>{`
-# Binary search on answer — find minimum capacity to ship in D days
-def ship_within_days(weights: list[int], days: int) -> int:
-    def can_ship(capacity: int) -> bool:
-        current_load = 0
-        days_needed = 1
-        for w in weights:
-            if current_load + w > capacity:
-                days_needed += 1
-                current_load = 0
-            current_load += w
-        return days_needed <= days
-
-    left, right = max(weights), sum(weights)
-    while left < right:
-        mid = (left + right) // 2
-        if can_ship(mid):
-            right = mid
-        else:
-            left = mid + 1
-    return left
-`}</Code>
-
-          <Callout type="insight">
-            <strong>Binary search on answer:</strong> When asked to "minimize the maximum" or "find the smallest X such that...", binary search on the answer space.
-          </Callout>
-        </>
-      ),
-    },
-
-    // ==================== SECTION 8: STACK & QUEUE ====================
-    {
-      id: "stack-queue",
-      title: "Stack & Queue",
-      subtitle: "LIFO/FIFO operations and monotonic patterns",
-      content: (
-        <>
-          <Prose>
-            Stacks (LIFO) and queues (FIFO) are fundamental for traversals and matching problems. Use Python lists for stacks and <code>collections.deque</code> for queues.
-          </Prose>
-
-          <MethodTable methods={[
-            { name: "stack.append(x)", desc: "Push to stack", complexity: "O(1)" },
-            { name: "stack.pop()", desc: "Pop from stack", complexity: "O(1)" },
-            { name: "stack[-1]", desc: "Peek top", complexity: "O(1)" },
-            { name: "deque.append(x)", desc: "Add to right", complexity: "O(1)" },
-            { name: "deque.popleft()", desc: "Remove from left", complexity: "O(1)" },
-            { name: "deque.appendleft(x)", desc: "Add to left", complexity: "O(1)" },
-          ]} />
-
-          <Code>{`
-# Valid parentheses
-def is_valid(s: str) -> bool:
-    stack = []
-    pairs = {')': '(', '}': '{', ']': '['}
-
-    for char in s:
-        if char in pairs:
-            if not stack or stack[-1] != pairs[char]:
-                return False
-            stack.pop()
-        else:
-            stack.append(char)
-
-    return len(stack) == 0
-`}</Code>
-
-          <Code>{`
-# Monotonic stack — next greater element
-def next_greater_element(nums: list[int]) -> list[int]:
-    result = [-1] * len(nums)
-    stack = []  # indices
-
-    for i, num in enumerate(nums):
-        while stack and nums[stack[-1]] < num:
-            idx = stack.pop()
-            result[idx] = num
-        stack.append(i)
-
-    return result
-`}</Code>
-
-          <Code>{`
-# BFS with deque
+          <FunctionCard
+            name="deque"
+            syntax="from collections import deque"
+            description="Double-ended queue with O(1) operations on both ends. Use this when you need to add/remove from the front — list.pop(0) is O(n)!"
+            example={`
 from collections import deque
 
-def bfs(graph: dict, start: int) -> list[int]:
-    visited = set([start])
+q = deque([1, 2, 3])
+
+# O(1) operations on both ends
+q.append(4)      # [1, 2, 3, 4] - add to right
+q.appendleft(0)  # [0, 1, 2, 3, 4] - add to left
+q.pop()          # returns 4, deque is [0, 1, 2, 3]
+q.popleft()      # returns 0, deque is [1, 2, 3]
+
+# Rotate
+q.rotate(1)   # [3, 1, 2] - rotate right
+q.rotate(-1)  # [1, 2, 3] - rotate left
+
+# Bounded deque (sliding window)
+recent = deque(maxlen=3)
+for i in range(5):
+    recent.append(i)
+# deque is [2, 3, 4] - oldest items auto-removed
+
+# Problem: BFS template
+def bfs(start, end, get_neighbors):
     queue = deque([start])
-    order = []
+    visited = {start}
 
     while queue:
-        node = queue.popleft()
-        order.append(node)
-
-        for neighbor in graph.get(node, []):
+        node = queue.popleft()  # O(1)!
+        if node == end:
+            return True
+        for neighbor in get_neighbors(node):
             if neighbor not in visited:
                 visited.add(neighbor)
                 queue.append(neighbor)
 
-    return order
-`}</Code>
-
-          <Callout type="tip">
-            <strong>Monotonic stack pattern:</strong> When you need "next greater/smaller element" or "span problems", think monotonic stack. Maintain a stack where elements are always increasing or decreasing.
-          </Callout>
+    return False
+`}
+          />
         </>
       ),
     },
 
-    // ==================== SECTION 9: SORTING TRICKS ====================
+    // ==================== SECTION 7: COMMON PATTERNS ====================
     {
-      id: "sorting",
-      title: "Sorting Tricks",
-      subtitle: "Custom keys, intervals, and comparisons",
+      id: "patterns",
+      title: "Putting It Together: Common Patterns",
+      subtitle: "How these tools combine to solve real problems",
       content: (
         <>
           <Prose>
-            Python's <code>sorted()</code> and <code>list.sort()</code> use Timsort — O(n log n) guaranteed. The <code>key</code> parameter is your best friend for custom sorting.
+            Now let's see how these functions and methods combine into patterns you'll use repeatedly. Each pattern below solves a category of problems — recognize the pattern, and you have a template to follow.
           </Prose>
 
+          <Callout type="example" title="Pattern: Frequency Count">
+            Use Counter or a dict to count occurrences. Many problems reduce to "count things, then answer a question about counts."
+          </Callout>
+
           <Code>{`
-# Sort by custom key
-intervals = [[1, 3], [2, 6], [8, 10], [15, 18]]
+from collections import Counter
 
-# Sort by start time
-intervals.sort(key=lambda x: x[0])
+# Are two strings anagrams?
+def is_anagram(s, t):
+    return Counter(s) == Counter(t)
 
-# Sort by end time (for greedy scheduling)
-intervals.sort(key=lambda x: x[1])
+# Find most frequent element
+def most_frequent(nums):
+    return Counter(nums).most_common(1)[0][0]
 
-# Multi-level: sort by start, then by end descending
-intervals.sort(key=lambda x: (x[0], -x[1]))
+# Find first unique character
+def first_unique(s):
+    counts = Counter(s)
+    for i, c in enumerate(s):
+        if counts[c] == 1:
+            return i
+    return -1
 `}</Code>
 
-          <Code>{`
-# Merge intervals
-def merge_intervals(intervals: list[list[int]]) -> list[list[int]]:
-    if not intervals:
-        return []
+          <Callout type="example" title="Pattern: Two Pointers">
+            Use two indices moving toward each other (or in the same direction) to avoid nested loops.
+          </Callout>
 
-    intervals.sort(key=lambda x: x[0])
+          <Code>{`
+# Palindrome check
+def is_palindrome(s):
+    left, right = 0, len(s) - 1
+    while left < right:
+        if s[left] != s[right]:
+            return False
+        left += 1
+        right -= 1
+    return True
+
+# Two sum in sorted array
+def two_sum_sorted(nums, target):
+    left, right = 0, len(nums) - 1
+    while left < right:
+        current = nums[left] + nums[right]
+        if current == target:
+            return [left, right]
+        elif current < target:
+            left += 1
+        else:
+            right -= 1
+    return []
+
+# Remove duplicates in-place (sorted array)
+def remove_duplicates(nums):
+    if not nums:
+        return 0
+    write = 1
+    for read in range(1, len(nums)):
+        if nums[read] != nums[read - 1]:
+            nums[write] = nums[read]
+            write += 1
+    return write
+`}</Code>
+
+          <Callout type="example" title="Pattern: Sliding Window">
+            Maintain a window over the array, expanding and contracting based on conditions.
+          </Callout>
+
+          <Code>{`
+# Maximum sum subarray of size k
+def max_sum_k(nums, k):
+    window_sum = sum(nums[:k])
+    max_sum = window_sum
+
+    for i in range(k, len(nums)):
+        window_sum += nums[i] - nums[i - k]  # slide window
+        max_sum = max(max_sum, window_sum)
+
+    return max_sum
+
+# Longest substring without repeating characters
+def longest_unique(s):
+    seen = {}
+    left = max_len = 0
+
+    for right, char in enumerate(s):
+        if char in seen and seen[char] >= left:
+            left = seen[char] + 1
+        seen[char] = right
+        max_len = max(max_len, right - left + 1)
+
+    return max_len
+`}</Code>
+
+          <Callout type="example" title="Pattern: Hash Set for O(1) Lookup">
+            When you need to check "have I seen this before?", use a set.
+          </Callout>
+
+          <Code>{`
+# Find duplicate
+def has_duplicate(nums):
+    seen = set()
+    for num in nums:
+        if num in seen:
+            return True
+        seen.add(num)
+    return False
+
+# Or simply:
+def has_duplicate_simple(nums):
+    return len(nums) != len(set(nums))
+
+# Find intersection of two arrays
+def intersection(nums1, nums2):
+    return list(set(nums1) & set(nums2))
+
+# Find missing number (0 to n)
+def missing_number(nums):
+    full_set = set(range(len(nums) + 1))
+    return (full_set - set(nums)).pop()
+`}</Code>
+
+          <Callout type="example" title="Pattern: Sorting + Greedy">
+            Sort the input first, then make greedy choices.
+          </Callout>
+
+          <Code>{`
+# Merge overlapping intervals
+def merge_intervals(intervals):
+    intervals.sort(key=lambda x: x[0])  # sort by start
     merged = [intervals[0]]
 
     for start, end in intervals[1:]:
@@ -695,281 +1120,15 @@ def merge_intervals(intervals: list[list[int]]) -> list[list[int]]:
             merged.append([start, end])
 
     return merged
+
+# Meeting rooms (can attend all?)
+def can_attend_all(intervals):
+    intervals.sort()
+    for i in range(1, len(intervals)):
+        if intervals[i][0] < intervals[i-1][1]:
+            return False
+    return True
 `}</Code>
-
-          <Code>{`
-# Custom comparator (rare, but useful for complex sorting)
-from functools import cmp_to_key
-
-def largest_number(nums: list[int]) -> str:
-    def compare(x, y):
-        if x + y > y + x:
-            return -1  # x should come first
-        elif x + y < y + x:
-            return 1
-        return 0
-
-    strs = [str(n) for n in nums]
-    strs.sort(key=cmp_to_key(compare))
-
-    result = "".join(strs)
-    return "0" if result[0] == "0" else result
-`}</Code>
-
-          <Callout type="warning">
-            <strong>Gotcha:</strong> For descending numeric sort, you can use <code>-x</code> in the key. But for strings, negate doesn't work — use <code>reverse=True</code> or <code>cmp_to_key</code>.
-          </Callout>
-        </>
-      ),
-    },
-
-    // ==================== SECTION 10: HEAP PATTERNS ====================
-    {
-      id: "heap",
-      title: "Heap Patterns",
-      subtitle: "Top-K, merge K, and running statistics",
-      content: (
-        <>
-          <Prose>
-            Python's <code>heapq</code> provides a min-heap. For a max-heap, negate values. Heaps are perfect for "K largest/smallest" and streaming problems.
-          </Prose>
-
-          <MethodTable methods={[
-            { name: "heappush(h, x)", desc: "Push item", complexity: "O(log n)" },
-            { name: "heappop(h)", desc: "Pop smallest", complexity: "O(log n)" },
-            { name: "heapify(arr)", desc: "Transform list to heap", complexity: "O(n)" },
-            { name: "nlargest(k, arr)", desc: "K largest elements", complexity: "O(n log k)" },
-            { name: "nsmallest(k, arr)", desc: "K smallest elements", complexity: "O(n log k)" },
-          ]} />
-
-          <Code>{`
-import heapq
-
-# Top K frequent elements
-def top_k_frequent(nums: list[int], k: int) -> list[int]:
-    from collections import Counter
-    freq = Counter(nums)
-
-    # Use min-heap of size k for O(n log k)
-    return heapq.nlargest(k, freq.keys(), key=freq.get)
-`}</Code>
-
-          <Code>{`
-# Max heap trick — negate values
-import heapq
-
-max_heap = []
-heapq.heappush(max_heap, -5)
-heapq.heappush(max_heap, -3)
-heapq.heappush(max_heap, -7)
-
-largest = -heapq.heappop(max_heap)  # 7
-`}</Code>
-
-          <Code>{`
-# Merge K sorted lists
-import heapq
-
-def merge_k_lists(lists: list[list[int]]) -> list[int]:
-    heap = []
-
-    # Initialize with first element of each list
-    for i, lst in enumerate(lists):
-        if lst:
-            heapq.heappush(heap, (lst[0], i, 0))  # (value, list_idx, element_idx)
-
-    result = []
-    while heap:
-        val, list_idx, elem_idx = heapq.heappop(heap)
-        result.append(val)
-
-        # Push next element from same list
-        if elem_idx + 1 < len(lists[list_idx]):
-            next_val = lists[list_idx][elem_idx + 1]
-            heapq.heappush(heap, (next_val, list_idx, elem_idx + 1))
-
-    return result
-`}</Code>
-
-          <Callout type="insight">
-            <strong>K largest vs K smallest:</strong> For K largest, use a min-heap of size K (pop when size exceeds K). For K smallest, use max-heap of size K. This gives O(n log k) instead of O(n log n).
-          </Callout>
-        </>
-      ),
-    },
-
-    // ==================== SECTION 11: GRAPH ESSENTIALS ====================
-    {
-      id: "graphs",
-      title: "Graph Essentials",
-      subtitle: "BFS, DFS, and topological sort templates",
-      content: (
-        <>
-          <Prose>
-            Graph problems appear frequently and follow predictable patterns. Represent graphs as adjacency lists using <code>defaultdict(list)</code>. Choose BFS for shortest path, DFS for connectivity/cycles.
-          </Prose>
-
-          <Code>{`
-from collections import defaultdict, deque
-
-# Build adjacency list from edge list
-def build_graph(edges: list[list[int]], directed: bool = False) -> dict:
-    graph = defaultdict(list)
-    for u, v in edges:
-        graph[u].append(v)
-        if not directed:
-            graph[v].append(u)
-    return graph
-`}</Code>
-
-          <Code>{`
-# BFS — shortest path / level order
-def bfs_shortest_path(graph: dict, start: int, end: int) -> int:
-    if start == end:
-        return 0
-
-    visited = set([start])
-    queue = deque([(start, 0)])  # (node, distance)
-
-    while queue:
-        node, dist = queue.popleft()
-
-        for neighbor in graph[node]:
-            if neighbor == end:
-                return dist + 1
-            if neighbor not in visited:
-                visited.add(neighbor)
-                queue.append((neighbor, dist + 1))
-
-    return -1  # no path
-`}</Code>
-
-          <Code>{`
-# DFS — connected components / flood fill
-def count_components(n: int, edges: list[list[int]]) -> int:
-    graph = defaultdict(list)
-    for u, v in edges:
-        graph[u].append(v)
-        graph[v].append(u)
-
-    visited = set()
-    count = 0
-
-    def dfs(node: int) -> None:
-        visited.add(node)
-        for neighbor in graph[node]:
-            if neighbor not in visited:
-                dfs(neighbor)
-
-    for node in range(n):
-        if node not in visited:
-            dfs(node)
-            count += 1
-
-    return count
-`}</Code>
-
-          <Code>{`
-# Topological sort — Kahn's algorithm (BFS)
-def topological_sort(n: int, prerequisites: list[list[int]]) -> list[int]:
-    graph = defaultdict(list)
-    in_degree = [0] * n
-
-    for course, prereq in prerequisites:
-        graph[prereq].append(course)
-        in_degree[course] += 1
-
-    queue = deque([i for i in range(n) if in_degree[i] == 0])
-    order = []
-
-    while queue:
-        node = queue.popleft()
-        order.append(node)
-
-        for neighbor in graph[node]:
-            in_degree[neighbor] -= 1
-            if in_degree[neighbor] == 0:
-                queue.append(neighbor)
-
-    return order if len(order) == n else []  # empty if cycle
-`}</Code>
-        </>
-      ),
-    },
-
-    // ==================== SECTION 12: DP STARTERS ====================
-    {
-      id: "dp",
-      title: "DP Starters",
-      subtitle: "1D and 2D dynamic programming patterns",
-      content: (
-        <>
-          <Prose>
-            Dynamic programming breaks down into: (1) define state, (2) write recurrence, (3) set base cases, (4) determine build order. Start with recursion + memoization, then optimize to iterative if needed.
-          </Prose>
-
-          <Code>{`
-# 1D DP — Climbing stairs (Fibonacci pattern)
-def climb_stairs(n: int) -> int:
-    if n <= 2:
-        return n
-
-    prev, curr = 1, 2
-    for _ in range(3, n + 1):
-        prev, curr = curr, prev + curr
-
-    return curr
-`}</Code>
-
-          <Code>{`
-# 1D DP — House robber (take or skip)
-def house_robber(nums: list[int]) -> int:
-    if len(nums) <= 2:
-        return max(nums) if nums else 0
-
-    # dp[i] = max profit robbing houses 0..i
-    prev2, prev1 = nums[0], max(nums[0], nums[1])
-
-    for i in range(2, len(nums)):
-        curr = max(prev1, prev2 + nums[i])  # skip or take
-        prev2, prev1 = prev1, curr
-
-    return prev1
-`}</Code>
-
-          <Code>{`
-# 2D DP — Unique paths (grid traversal)
-def unique_paths(m: int, n: int) -> int:
-    # dp[i][j] = number of ways to reach (i, j)
-    dp = [[1] * n for _ in range(m)]
-
-    for i in range(1, m):
-        for j in range(1, n):
-            dp[i][j] = dp[i-1][j] + dp[i][j-1]
-
-    return dp[m-1][n-1]
-`}</Code>
-
-          <Code>{`
-# LCS — Longest Common Subsequence
-def longest_common_subsequence(text1: str, text2: str) -> int:
-    m, n = len(text1), len(text2)
-    # dp[i][j] = LCS of text1[:i] and text2[:j]
-    dp = [[0] * (n + 1) for _ in range(m + 1)]
-
-    for i in range(1, m + 1):
-        for j in range(1, n + 1):
-            if text1[i-1] == text2[j-1]:
-                dp[i][j] = dp[i-1][j-1] + 1
-            else:
-                dp[i][j] = max(dp[i-1][j], dp[i][j-1])
-
-    return dp[m][n]
-`}</Code>
-
-          <Callout type="tip">
-            <strong>DP intuition:</strong> If the problem has overlapping subproblems (same smaller problems solved repeatedly) and optimal substructure (optimal solution uses optimal sub-solutions), DP likely applies.
-          </Callout>
         </>
       ),
     },
@@ -977,307 +1136,151 @@ def longest_common_subsequence(text1: str, text2: str) -> int:
 
   // ==================== OPERATIONS TABLE ====================
   operations: [
-    { name: "String: split, join, [::-1]", time: "O(n)", space: "O(n)", note: "Strings are immutable — modifications create new strings" },
-    { name: "List: append, pop", time: "O(1)", space: "O(1)", note: "Amortized O(1) for append due to array resizing" },
-    { name: "List: sort", time: "O(n log n)", space: "O(n)", note: "Timsort uses O(n) auxiliary space" },
-    { name: "Dict: get, set, in", time: "O(1) avg", space: "O(1)", note: "O(n) worst case with hash collisions" },
-    { name: "Heap: push, pop", time: "O(log n)", space: "O(1)", note: "heapify is O(n), not O(n log n)" },
-    { name: "Deque: append, popleft", time: "O(1)", space: "O(1)", note: "Use deque for queue operations, not list" },
-    { name: "Binary search: bisect", time: "O(log n)", space: "O(1)", note: "Requires sorted input" },
-    { name: "Set: add, in, &, |", time: "O(1) / O(min)", space: "O(n)", note: "Intersection is O(min(m, n))" },
+    { name: "len()", time: "O(1)", space: "O(1)", note: "Pre-computed for all built-in types" },
+    { name: "sum() / min() / max()", time: "O(n)", space: "O(1)", note: "Must examine all elements" },
+    { name: "sorted()", time: "O(n log n)", space: "O(n)", note: "Creates new list" },
+    { name: "list.sort()", time: "O(n log n)", space: "O(n)", note: "In-place but uses temp space" },
+    { name: "list.append()", time: "O(1) amortized", space: "O(1)", note: "Occasional resize" },
+    { name: "list.pop()", time: "O(1)", space: "O(1)", note: "From end only; pop(0) is O(n)" },
+    { name: "list.insert(0, x)", time: "O(n)", space: "O(1)", note: "All elements shift" },
+    { name: "dict[key] / in dict", time: "O(1) avg", space: "O(1)", note: "Hash table lookup" },
+    { name: "set.add() / in set", time: "O(1) avg", space: "O(1)", note: "Hash table lookup" },
+    { name: "deque.popleft()", time: "O(1)", space: "O(1)", note: "Use instead of list.pop(0)" },
+    { name: "Counter()", time: "O(n)", space: "O(k)", note: "k = unique elements" },
+    { name: "str.split() / join()", time: "O(n)", space: "O(n)", note: "Creates new string/list" },
   ],
 
   // ==================== PATTERNS ====================
   patterns: [
     {
-      id: "two-pointers",
+      id: "counter-pattern",
+      name: "Frequency Counting with Counter",
+      tag: "Essential",
+      tagColor: "green",
+      description: "Count occurrences of elements using Counter from collections",
+      explanation: `**Counter** is your go-to for any problem involving frequency counts. It's a dictionary subclass that returns 0 for missing keys and supports arithmetic operations between counters.
+
+Use Counter when you need to: count character frequencies, find most/least common elements, check if two collections have the same elements (anagrams), or compare frequency distributions.`,
+      triggers: "frequency, count, anagram, most common, least common, histogram",
+      code: `from collections import Counter
+
+# Basic counting
+freq = Counter("aabbc")  # {'a': 2, 'b': 2, 'c': 1}
+
+# Most common k elements
+freq.most_common(2)  # [('a', 2), ('b', 2)]
+
+# Anagram check
+Counter("listen") == Counter("silent")  # True
+
+# Subtract counts
+Counter("aab") - Counter("ab")  # Counter({'a': 1})`,
+    },
+    {
+      id: "two-pointers-pattern",
       name: "Two Pointers",
-      tag: "Core",
-      tagColor: "accent",
-      description: "Use two indices to traverse array from opposite ends or same direction",
-      explanation: `The **two pointers** technique uses two indices that move through an array based on certain conditions. The most common variants are: (1) **opposite ends** — start at both ends and move inward, useful for sorted arrays and palindromes; (2) **same direction** — fast and slow pointers, useful for cycle detection and removing duplicates; (3) **two arrays** — one pointer per array, useful for merging sorted arrays.
-
-This pattern reduces O(n²) brute force to O(n) by eliminating redundant comparisons. The key insight is that pointer movement decisions can eliminate entire classes of solutions at once.`,
-      triggers: "sorted array, palindrome, pair with sum, remove duplicates, container with water, merge sorted",
-      code: `# Opposite ends — two sum in sorted array
-def two_sum_sorted(nums: list[int], target: int) -> list[int]:
-    left, right = 0, len(nums) - 1
-    while left < right:
-        curr = nums[left] + nums[right]
-        if curr == target:
-            return [left, right]
-        elif curr < target:
-            left += 1
-        else:
-            right -= 1
-    return []
-
-# Same direction — remove duplicates in-place
-def remove_duplicates(nums: list[int]) -> int:
-    if not nums:
-        return 0
-    write = 1
-    for read in range(1, len(nums)):
-        if nums[read] != nums[read - 1]:
-            nums[write] = nums[read]
-            write += 1
-    return write`,
-    },
-    {
-      id: "sliding-window",
-      name: "Sliding Window",
-      tag: "Core",
-      tagColor: "accent",
-      description: "Maintain a window over contiguous elements, expanding and shrinking as needed",
-      explanation: `**Sliding window** maintains a contiguous subarray or substring and slides it across the input. Two variants: (1) **fixed-size** — window of exactly k elements, slide by adding right and removing left; (2) **variable-size** — expand window until constraint violated, then shrink until valid again.
-
-Variable-size windows typically track window state in a hashmap. The outer loop expands (moves right pointer), while an inner loop shrinks (moves left pointer). This gives O(n) time since each element is added and removed at most once.`,
-      triggers: "contiguous subarray, substring, window of size k, maximum/minimum with constraint, at most k distinct",
-      code: `# Variable-size — longest substring with at most k distinct chars
-def longest_k_distinct(s: str, k: int) -> int:
-    from collections import defaultdict
-
-    char_count = defaultdict(int)
-    max_length = 0
-    left = 0
-
-    for right, char in enumerate(s):
-        char_count[char] += 1
-
-        while len(char_count) > k:
-            left_char = s[left]
-            char_count[left_char] -= 1
-            if char_count[left_char] == 0:
-                del char_count[left_char]
-            left += 1
-
-        max_length = max(max_length, right - left + 1)
-
-    return max_length`,
-    },
-    {
-      id: "hashmap-lookup",
-      name: "HashMap Lookup",
       tag: "Essential",
       tagColor: "green",
-      description: "Use dict for O(1) complement lookup, frequency counting, or grouping",
-      explanation: `**HashMap lookup** converts O(n) linear search to O(1) by pre-computing and storing values. Three main patterns: (1) **complement lookup** — store values seen so far, check if complement exists (Two Sum); (2) **frequency counting** — use Counter or manual dict to count occurrences; (3) **grouping** — use dict to group elements by some key (group anagrams by sorted string).
+      description: "Use two indices moving through an array to avoid nested loops",
+      explanation: `**Two pointers** reduces O(n²) brute force to O(n) by intelligently moving indices. Common variants: opposite ends (start/end moving inward), same direction (slow/fast), or one pointer per array.
 
-The trade-off is O(n) extra space. For interview problems, this is almost always acceptable. Counter from collections is particularly useful — it supports arithmetic operations and most_common().`,
-      triggers: "two sum, find pair, frequency count, group by, first unique, most common",
-      code: `from collections import Counter, defaultdict
-
-# Complement lookup — Two Sum
-def two_sum(nums: list[int], target: int) -> list[int]:
-    seen = {}
-    for i, num in enumerate(nums):
-        if target - num in seen:
-            return [seen[target - num], i]
-        seen[num] = i
-    return []
-
-# Group by — anagrams
-def group_anagrams(strs: list[str]) -> list[list[str]]:
-    groups = defaultdict(list)
-    for s in strs:
-        groups[tuple(sorted(s))].append(s)
-    return list(groups.values())`,
-    },
-    {
-      id: "binary-search",
-      name: "Binary Search",
-      tag: "Essential",
-      tagColor: "green",
-      description: "Halve search space each iteration for O(log n) on sorted data",
-      explanation: `**Binary search** requires sorted data and halves the search space each iteration. Beyond basic element search, the pattern applies to "binary search on answer" — when asked to minimize the maximum or find the smallest value satisfying a condition, binary search the answer space.
-
-Use Python's bisect module for cleaner code: bisect_left finds the leftmost position, bisect_right finds the rightmost. For "first occurrence" use bisect_left, for "last occurrence" use bisect_right - 1.`,
-      triggers: "sorted array, search, first/last occurrence, minimize maximum, smallest x such that",
-      code: `from bisect import bisect_left, bisect_right
-
-# Standard binary search
-def binary_search(arr: list[int], target: int) -> int:
+Use when: array is sorted, you're looking for pairs with some property, or you need to partition/modify in-place.`,
+      triggers: "sorted array, pair sum, palindrome, container, remove duplicates, partition",
+      code: `# Template: opposite ends
+def two_pointer_opposite(arr):
     left, right = 0, len(arr) - 1
-    while left <= right:
-        mid = (left + right) // 2
-        if arr[mid] == target:
-            return mid
-        elif arr[mid] < target:
-            left = mid + 1
+    while left < right:
+        # Check condition with arr[left] and arr[right]
+        # Move left++ or right-- based on result
+        pass
+
+# Template: same direction (fast/slow)
+def two_pointer_same(arr):
+    slow = 0
+    for fast in range(len(arr)):
+        if some_condition(arr[fast]):
+            arr[slow] = arr[fast]
+            slow += 1
+    return slow`,
+    },
+    {
+      id: "sliding-window-pattern",
+      name: "Sliding Window",
+      tag: "Essential",
+      tagColor: "green",
+      description: "Maintain a window over contiguous elements, sliding it across the array",
+      explanation: `**Sliding window** efficiently processes contiguous subarrays by maintaining a "window" that slides right. Fixed-size windows add one element and remove one. Variable-size windows expand until invalid, then shrink.
+
+Use when: problem involves contiguous subarray/substring, mentions "window", or asks for max/min with some constraint.`,
+      triggers: "contiguous, subarray, substring, window, consecutive, at most k",
+      code: `# Fixed-size window
+def fixed_window(arr, k):
+    window = sum(arr[:k])
+    result = window
+    for i in range(k, len(arr)):
+        window += arr[i] - arr[i-k]  # add right, remove left
+        result = max(result, window)
+    return result
+
+# Variable-size window (expand/shrink)
+def variable_window(s):
+    left = 0
+    window = {}
+    result = 0
+    for right in range(len(s)):
+        # expand: add s[right] to window
+        while invalid_condition:
+            # shrink: remove s[left] from window
+            left += 1
+        result = max(result, right - left + 1)
+    return result`,
+    },
+    {
+      id: "hashset-pattern",
+      name: "Hash Set for Lookup",
+      tag: "Core",
+      tagColor: "accent",
+      description: "Use a set for O(1) membership testing",
+      explanation: `When you need to answer "have I seen this?" in O(1), use a set. Sets are backed by hash tables and provide constant-time add and lookup operations.
+
+Common uses: duplicate detection, finding intersections, checking if complement exists.`,
+      triggers: "duplicate, seen before, exists, intersection, complement",
+      code: `# Duplicate check
+def has_duplicate(nums):
+    return len(nums) != len(set(nums))
+
+# Two sum with set
+def has_pair_sum(nums, target):
+    seen = set()
+    for num in nums:
+        if target - num in seen:
+            return True
+        seen.add(num)
+    return False
+
+# Intersection
+common = set(list1) & set(list2)`,
+    },
+    {
+      id: "sort-greedy-pattern",
+      name: "Sort + Greedy",
+      tag: "Core",
+      tagColor: "accent",
+      description: "Sort input first, then make greedy decisions",
+      explanation: `Many problems become simple after sorting. Once sorted, you can make greedy choices (always pick the smallest/largest that satisfies your constraint) and prove they lead to optimal solutions.
+
+Use when: intervals (sort by start/end), scheduling, merging, or when order doesn't affect the answer.`,
+      triggers: "intervals, merge, schedule, meetings, greedy, optimal order",
+      code: `# Merge intervals
+def merge(intervals):
+    intervals.sort()  # sort by start
+    result = [intervals[0]]
+    for start, end in intervals[1:]:
+        if start <= result[-1][1]:
+            result[-1][1] = max(result[-1][1], end)
         else:
-            right = mid - 1
-    return -1
-
-# Count occurrences using bisect
-def count(arr: list[int], target: int) -> int:
-    return bisect_right(arr, target) - bisect_left(arr, target)`,
-    },
-    {
-      id: "monotonic-stack",
-      name: "Monotonic Stack",
-      tag: "Pattern",
-      tagColor: "teal",
-      description: "Stack maintaining increasing/decreasing order for next greater/smaller problems",
-      explanation: `A **monotonic stack** maintains elements in sorted order (increasing or decreasing). When a new element violates the order, pop elements until order is restored. Each popped element's "answer" is the current element.
-
-Use increasing monotonic stack for "next greater element" — pop smaller elements when you see a larger one. Use decreasing for "next smaller element". The key insight: each element is pushed and popped at most once, giving O(n) total time.`,
-      triggers: "next greater, next smaller, span, largest rectangle, daily temperatures",
-      code: `# Next greater element
-def next_greater(nums: list[int]) -> list[int]:
-    result = [-1] * len(nums)
-    stack = []  # indices
-
-    for i, num in enumerate(nums):
-        while stack and nums[stack[-1]] < num:
-            result[stack.pop()] = num
-        stack.append(i)
-
-    return result
-
-# Daily temperatures — days until warmer
-def daily_temperatures(temps: list[int]) -> list[int]:
-    result = [0] * len(temps)
-    stack = []
-
-    for i, temp in enumerate(temps):
-        while stack and temps[stack[-1]] < temp:
-            prev = stack.pop()
-            result[prev] = i - prev
-        stack.append(i)
-
+            result.append([start, end])
     return result`,
-    },
-    {
-      id: "prefix-sum",
-      name: "Prefix Sum",
-      tag: "Pattern",
-      tagColor: "teal",
-      description: "Precompute cumulative sums for O(1) range sum queries",
-      explanation: `**Prefix sum** precomputes cumulative sums so that any range sum becomes a single subtraction. prefix[i] = sum(arr[0:i]), so sum(arr[i:j]) = prefix[j] - prefix[i].
-
-The pattern extends to 2D (prefix rectangles), prefix XOR, prefix product, and more. Build the prefix array in O(n), then answer unlimited range queries in O(1) each. Often combined with hashmap for "subarray sum equals k" problems.`,
-      triggers: "range sum, subarray sum equals k, contiguous sum, cumulative",
-      code: `# Build prefix sum
-def prefix_sum(nums: list[int]) -> list[int]:
-    prefix = [0]
-    for num in nums:
-        prefix.append(prefix[-1] + num)
-    return prefix
-
-# Range sum query
-# sum(nums[i:j]) = prefix[j] - prefix[i]
-
-# Subarray sum equals k (using hashmap)
-def subarray_sum(nums: list[int], k: int) -> int:
-    prefix_counts = {0: 1}
-    count = curr_sum = 0
-
-    for num in nums:
-        curr_sum += num
-        count += prefix_counts.get(curr_sum - k, 0)
-        prefix_counts[curr_sum] = prefix_counts.get(curr_sum, 0) + 1
-
-    return count`,
-    },
-    {
-      id: "backtracking",
-      name: "Backtracking",
-      tag: "Pattern",
-      tagColor: "amber",
-      description: "Build solutions incrementally, backtrack when constraint violated",
-      explanation: `**Backtracking** builds solutions incrementally, abandoning paths that violate constraints ("pruning"). The template: (1) check if current state is a solution, (2) iterate through choices, (3) make choice, recurse, undo choice.
-
-Common applications: subsets, permutations, combinations, N-Queens, Sudoku. The key is identifying what constitutes a "choice" at each step and when to prune. Time complexity is often exponential, but pruning significantly reduces practical runtime.`,
-      triggers: "all subsets, all permutations, all combinations, generate all, n-queens, sudoku",
-      code: `# Subsets — include or exclude each element
-def subsets(nums: list[int]) -> list[list[int]]:
-    result = []
-
-    def backtrack(start: int, path: list[int]):
-        result.append(path[:])  # add current subset
-        for i in range(start, len(nums)):
-            path.append(nums[i])
-            backtrack(i + 1, path)
-            path.pop()
-
-    backtrack(0, [])
-    return result
-
-# Permutations — try each remaining element
-def permutations(nums: list[int]) -> list[list[int]]:
-    result = []
-
-    def backtrack(path: list[int], remaining: set):
-        if not remaining:
-            result.append(path[:])
-            return
-        for num in list(remaining):
-            path.append(num)
-            remaining.remove(num)
-            backtrack(path, remaining)
-            path.pop()
-            remaining.add(num)
-
-    backtrack([], set(nums))
-    return result`,
-    },
-    {
-      id: "bfs-shortest",
-      name: "BFS for Shortest Path",
-      tag: "Graph",
-      tagColor: "coral",
-      description: "Level-order traversal guarantees shortest path in unweighted graphs",
-      explanation: `**BFS** explores nodes level by level, which guarantees the shortest path in unweighted graphs. Use a deque (not list!) for O(1) popleft. Track visited nodes in a set to avoid cycles.
-
-For shortest path, track distance with each node in the queue. For "minimum steps to reach target", BFS gives the answer when you first reach the target. BFS also works for level-order tree traversal and multi-source shortest path (start queue with all sources).`,
-      triggers: "shortest path, minimum steps, level order, unweighted graph, word ladder",
-      code: `from collections import deque
-
-# BFS shortest path
-def shortest_path(graph: dict, start: int, end: int) -> int:
-    if start == end:
-        return 0
-
-    visited = {start}
-    queue = deque([(start, 0)])
-
-    while queue:
-        node, dist = queue.popleft()
-        for neighbor in graph.get(node, []):
-            if neighbor == end:
-                return dist + 1
-            if neighbor not in visited:
-                visited.add(neighbor)
-                queue.append((neighbor, dist + 1))
-
-    return -1
-
-# Grid BFS — number of islands
-def num_islands(grid: list[list[str]]) -> int:
-    if not grid:
-        return 0
-
-    rows, cols = len(grid), len(grid[0])
-    count = 0
-
-    def bfs(r: int, c: int):
-        queue = deque([(r, c)])
-        grid[r][c] = '0'  # mark visited
-        while queue:
-            r, c = queue.popleft()
-            for dr, dc in [(0,1), (0,-1), (1,0), (-1,0)]:
-                nr, nc = r + dr, c + dc
-                if 0 <= nr < rows and 0 <= nc < cols and grid[nr][nc] == '1':
-                    grid[nr][nc] = '0'
-                    queue.append((nr, nc))
-
-    for r in range(rows):
-        for c in range(cols):
-            if grid[r][c] == '1':
-                bfs(r, c)
-                count += 1
-
-    return count`,
     },
   ],
 
@@ -1287,16 +1290,15 @@ def num_islands(grid: list[list[str]]) -> int:
       id: "two-sum",
       title: "Two Sum",
       difficulty: "easy",
-      description: "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target. You may assume that each input would have exactly one solution, and you may not use the same element twice.",
+      description: "Given an array of integers nums and an integer target, return indices of two numbers that add up to target.",
       examples: [
         { input: "nums = [2, 7, 11, 15], target = 9", output: "[0, 1]", explanation: "nums[0] + nums[1] = 2 + 7 = 9" },
-        { input: "nums = [3, 2, 4], target = 6", output: "[1, 2]" },
       ],
       starterCode: `def two_sum(nums: list[int], target: int) -> list[int]:
-    # Your code here
+    # Use a dictionary for O(1) lookup
     pass`,
       solution: `def two_sum(nums: list[int], target: int) -> list[int]:
-    seen = {}
+    seen = {}  # value -> index
     for i, num in enumerate(nums):
         complement = target - num
         if complement in seen:
@@ -1304,9 +1306,9 @@ def num_islands(grid: list[list[str]]) -> int:
         seen[num] = i
     return []`,
       hints: [
-        "For each number, what value would you need to find to reach the target?",
-        "How can you check if you've seen that value before in O(1) time?",
-        "Use a hashmap to store number → index as you iterate",
+        "For each number, what value would complete the target?",
+        "Use a dictionary to store numbers you've seen",
+        "Check if complement exists before adding current number",
       ],
       testCases: [
         { input: "[2, 7, 11, 15], 9", expected: "[0, 1]" },
@@ -1318,144 +1320,102 @@ def num_islands(grid: list[list[str]]) -> int:
       id: "valid-anagram",
       title: "Valid Anagram",
       difficulty: "easy",
-      description: "Given two strings s and t, return true if t is an anagram of s, and false otherwise. An anagram uses all original letters exactly once.",
+      description: "Given two strings s and t, return true if t is an anagram of s (uses same letters same number of times).",
       examples: [
         { input: 's = "anagram", t = "nagaram"', output: "true" },
         { input: 's = "rat", t = "car"', output: "false" },
       ],
       starterCode: `def is_anagram(s: str, t: str) -> bool:
-    # Your code here
+    # Use Counter for frequency comparison
     pass`,
       solution: `def is_anagram(s: str, t: str) -> bool:
     from collections import Counter
     return Counter(s) == Counter(t)`,
       hints: [
-        "What defines an anagram? Same characters with same frequencies",
-        "Counter from collections can count character frequencies",
-        "Alternatively, sorting both strings should yield the same result",
+        "Anagrams have the same character frequencies",
+        "Counter makes frequency comparison easy",
       ],
       testCases: [
         { input: '"anagram", "nagaram"', expected: "True" },
         { input: '"rat", "car"', expected: "False" },
-        { input: '"a", "a"', expected: "True" },
       ],
     },
     {
-      id: "reverse-string",
-      title: "Reverse String In-Place",
-      difficulty: "easy",
-      description: "Write a function that reverses a string in-place. The input is given as a list of characters. You must do this by modifying the input list in-place with O(1) extra memory.",
-      examples: [
-        { input: 's = ["h","e","l","l","o"]', output: '["o","l","l","e","h"]' },
-        { input: 's = ["H","a","n","n","a","h"]', output: '["h","a","n","n","a","H"]' },
-      ],
-      starterCode: `def reverse_string(s: list[str]) -> None:
-    # Modify s in-place
-    pass`,
-      solution: `def reverse_string(s: list[str]) -> None:
-    left, right = 0, len(s) - 1
-    while left < right:
-        s[left], s[right] = s[right], s[left]
-        left += 1
-        right -= 1`,
-      hints: [
-        "Use two pointers starting at opposite ends",
-        "Swap characters at left and right pointers",
-        "Move pointers toward each other until they meet",
-      ],
-      testCases: [
-        { input: '["h","e","l","l","o"]', expected: '["o","l","l","e","h"]' },
-        { input: '["H","a","n","n","a","h"]', expected: '["h","a","n","n","a","H"]' },
-        { input: '["a"]', expected: '["a"]' },
-      ],
-    },
-    {
-      id: "container-with-most-water",
-      title: "Container With Most Water",
-      difficulty: "medium",
-      description: "Given n non-negative integers representing vertical lines at position i with height[i], find two lines that together with the x-axis form a container that holds the most water. Return the maximum amount of water.",
-      examples: [
-        { input: "height = [1,8,6,2,5,4,8,3,7]", output: "49", explanation: "Lines at indices 1 and 8 form container with area 7 * 7 = 49" },
-        { input: "height = [1,1]", output: "1" },
-      ],
-      starterCode: `def max_area(height: list[int]) -> int:
-    # Your code here
-    pass`,
-      solution: `def max_area(height: list[int]) -> int:
-    left, right = 0, len(height) - 1
-    max_water = 0
-
-    while left < right:
-        width = right - left
-        h = min(height[left], height[right])
-        max_water = max(max_water, width * h)
-
-        # Move the shorter line inward
-        if height[left] < height[right]:
-            left += 1
-        else:
-            right -= 1
-
-    return max_water`,
-      hints: [
-        "Area = width × min(left_height, right_height)",
-        "Start with widest container (left=0, right=n-1)",
-        "Moving the shorter line might find a taller one; moving the taller line can only decrease area",
-      ],
-      testCases: [
-        { input: "[1,8,6,2,5,4,8,3,7]", expected: "49" },
-        { input: "[1,1]", expected: "1" },
-        { input: "[4,3,2,1,4]", expected: "16" },
-      ],
-    },
-    {
-      id: "longest-substring-without-repeat",
+      id: "longest-substring",
       title: "Longest Substring Without Repeating Characters",
       difficulty: "medium",
-      description: "Given a string s, find the length of the longest substring without repeating characters.",
+      description: "Find the length of the longest substring without repeating characters.",
       examples: [
-        { input: 's = "abcabcbb"', output: "3", explanation: 'The answer is "abc", with length 3' },
-        { input: 's = "bbbbb"', output: "1", explanation: 'The answer is "b", with length 1' },
-        { input: 's = "pwwkew"', output: "3", explanation: 'The answer is "wke", with length 3' },
+        { input: 's = "abcabcbb"', output: "3", explanation: 'Answer is "abc"' },
+        { input: 's = "bbbbb"', output: "1" },
       ],
       starterCode: `def length_of_longest_substring(s: str) -> int:
-    # Your code here
+    # Use sliding window with a set or dict
     pass`,
       solution: `def length_of_longest_substring(s: str) -> int:
-    char_index = {}
-    max_length = 0
-    left = 0
+    seen = {}
+    left = max_len = 0
 
     for right, char in enumerate(s):
-        if char in char_index and char_index[char] >= left:
-            left = char_index[char] + 1
-        char_index[char] = right
-        max_length = max(max_length, right - left + 1)
+        if char in seen and seen[char] >= left:
+            left = seen[char] + 1
+        seen[char] = right
+        max_len = max(max_len, right - left + 1)
 
-    return max_length`,
+    return max_len`,
       hints: [
-        "Use sliding window with two pointers",
+        "Use sliding window - expand right, shrink left when needed",
         "Track last seen index of each character",
-        "When you see a repeat, move left pointer past the previous occurrence",
+        "When you see a repeat, move left past previous occurrence",
       ],
       testCases: [
         { input: '"abcabcbb"', expected: "3" },
         { input: '"bbbbb"', expected: "1" },
         { input: '"pwwkew"', expected: "3" },
-        { input: '""', expected: "0" },
+      ],
+    },
+    {
+      id: "merge-intervals",
+      title: "Merge Intervals",
+      difficulty: "medium",
+      description: "Given an array of intervals, merge all overlapping intervals.",
+      examples: [
+        { input: "intervals = [[1,3],[2,6],[8,10],[15,18]]", output: "[[1,6],[8,10],[15,18]]" },
+      ],
+      starterCode: `def merge(intervals: list[list[int]]) -> list[list[int]]:
+    # Sort first, then merge greedily
+    pass`,
+      solution: `def merge(intervals: list[list[int]]) -> list[list[int]]:
+    intervals.sort(key=lambda x: x[0])
+    merged = [intervals[0]]
+
+    for start, end in intervals[1:]:
+        if start <= merged[-1][1]:
+            merged[-1][1] = max(merged[-1][1], end)
+        else:
+            merged.append([start, end])
+
+    return merged`,
+      hints: [
+        "Sort intervals by start time first",
+        "Two intervals overlap if second.start <= first.end",
+        "When merging, take max of both end times",
+      ],
+      testCases: [
+        { input: "[[1,3],[2,6],[8,10],[15,18]]", expected: "[[1,6],[8,10],[15,18]]" },
+        { input: "[[1,4],[4,5]]", expected: "[[1,5]]" },
       ],
     },
     {
       id: "group-anagrams",
       title: "Group Anagrams",
       difficulty: "medium",
-      description: "Given an array of strings strs, group the anagrams together. You can return the answer in any order.",
+      description: "Group strings that are anagrams of each other together.",
       examples: [
         { input: 'strs = ["eat","tea","tan","ate","nat","bat"]', output: '[["bat"],["nat","tan"],["ate","eat","tea"]]' },
-        { input: 'strs = [""]', output: '[[""]]' },
       ],
       starterCode: `def group_anagrams(strs: list[str]) -> list[list[str]]:
-    # Your code here
+    # Use sorted string as dictionary key
     pass`,
       solution: `def group_anagrams(strs: list[str]) -> list[list[str]]:
     from collections import defaultdict
@@ -1467,91 +1427,13 @@ def num_islands(grid: list[list[str]]) -> int:
 
     return list(groups.values())`,
       hints: [
-        "Anagrams have the same characters — what's a canonical form?",
-        "Sorted string can be a key: sorted('eat') == sorted('tea')",
-        "Use defaultdict(list) to group strings by their sorted key",
+        "Anagrams have the same sorted form",
+        "Use sorted string as dictionary key",
+        "defaultdict(list) avoids key existence checks",
       ],
       testCases: [
         { input: '["eat","tea","tan","ate","nat","bat"]', expected: '[["eat","tea","ate"],["tan","nat"],["bat"]]' },
         { input: '[""]', expected: '[[""]]' },
-        { input: '["a"]', expected: '[["a"]]' },
-      ],
-    },
-    {
-      id: "merge-intervals",
-      title: "Merge Intervals",
-      difficulty: "medium",
-      description: "Given an array of intervals where intervals[i] = [start_i, end_i], merge all overlapping intervals and return an array of the non-overlapping intervals.",
-      examples: [
-        { input: "intervals = [[1,3],[2,6],[8,10],[15,18]]", output: "[[1,6],[8,10],[15,18]]", explanation: "Intervals [1,3] and [2,6] overlap, merge to [1,6]" },
-        { input: "intervals = [[1,4],[4,5]]", output: "[[1,5]]", explanation: "Intervals [1,4] and [4,5] are adjacent (touching)" },
-      ],
-      starterCode: `def merge(intervals: list[list[int]]) -> list[list[int]]:
-    # Your code here
-    pass`,
-      solution: `def merge(intervals: list[list[int]]) -> list[list[int]]:
-    if not intervals:
-        return []
-
-    intervals.sort(key=lambda x: x[0])
-    merged = [intervals[0]]
-
-    for start, end in intervals[1:]:
-        if start <= merged[-1][1]:  # overlapping
-            merged[-1][1] = max(merged[-1][1], end)
-        else:
-            merged.append([start, end])
-
-    return merged`,
-      hints: [
-        "Sort intervals by start time first",
-        "Two intervals overlap if second.start <= first.end",
-        "When merging, take the max of both end times",
-      ],
-      testCases: [
-        { input: "[[1,3],[2,6],[8,10],[15,18]]", expected: "[[1,6],[8,10],[15,18]]" },
-        { input: "[[1,4],[4,5]]", expected: "[[1,5]]" },
-        { input: "[[1,4],[0,4]]", expected: "[[0,4]]" },
-      ],
-    },
-    {
-      id: "product-except-self",
-      title: "Product of Array Except Self",
-      difficulty: "medium",
-      description: "Given an integer array nums, return an array answer such that answer[i] is equal to the product of all elements of nums except nums[i]. You must solve it in O(n) time without using division.",
-      examples: [
-        { input: "nums = [1,2,3,4]", output: "[24,12,8,6]" },
-        { input: "nums = [-1,1,0,-3,3]", output: "[0,0,9,0,0]" },
-      ],
-      starterCode: `def product_except_self(nums: list[int]) -> list[int]:
-    # Your code here
-    pass`,
-      solution: `def product_except_self(nums: list[int]) -> list[int]:
-    n = len(nums)
-    result = [1] * n
-
-    # Left pass: result[i] = product of all elements to the left
-    prefix = 1
-    for i in range(n):
-        result[i] = prefix
-        prefix *= nums[i]
-
-    # Right pass: multiply by product of all elements to the right
-    suffix = 1
-    for i in range(n - 1, -1, -1):
-        result[i] *= suffix
-        suffix *= nums[i]
-
-    return result`,
-      hints: [
-        "Product except self = (product of all left) × (product of all right)",
-        "First pass: compute prefix products from left",
-        "Second pass: multiply by suffix products from right",
-      ],
-      testCases: [
-        { input: "[1,2,3,4]", expected: "[24,12,8,6]" },
-        { input: "[-1,1,0,-3,3]", expected: "[0,0,9,0,0]" },
-        { input: "[2,3]", expected: "[3,2]" },
       ],
     },
   ],

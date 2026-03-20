@@ -2,7 +2,7 @@ import React, { useState } from "react";
 
 interface CodeBlockProps {
   code: string;
-  language?: "python" | "typescript" | "javascript";
+  language?: "python" | "typescript" | "javascript" | "bash" | "yaml";
   title?: string;
   showLineNumbers?: boolean;
 }
@@ -89,6 +89,158 @@ const highlightPython = (code: string): HighlightedLine[] => {
           tokens.push(<span key={key++} style={{ color: '#60a5fa' }}>{funcMatch[1]}</span>);
           tokens.push(<span key={key++}>{funcMatch[2]}</span>);
           remaining = remaining.slice(funcMatch[1].length + 1);
+          matched = true;
+        }
+      }
+
+      if (!matched) {
+        tokens.push(<span key={key++}>{remaining[0]}</span>);
+        remaining = remaining.slice(1);
+      }
+    }
+
+    return { lineNumber: lineIndex + 1, tokens };
+  });
+};
+
+// Syntax highlighting for Bash
+const highlightBash = (code: string): HighlightedLine[] => {
+  const lines = code.split('\n');
+
+  return lines.map((line, lineIndex) => {
+    const tokens: React.ReactNode[] = [];
+    let remaining = line;
+    let key = 0;
+
+    while (remaining.length > 0) {
+      let matched = false;
+
+      // Comments
+      const commentMatch = remaining.match(/^(#.*)$/);
+      if (commentMatch) {
+        tokens.push(<span key={key++} style={{ color: '#6b7280' }}>{commentMatch[1]}</span>);
+        remaining = '';
+        matched = true;
+      }
+
+      // Strings
+      if (!matched) {
+        const stringMatch = remaining.match(/^("[^"]*"|'[^']*')/);
+        if (stringMatch) {
+          tokens.push(<span key={key++} style={{ color: '#10b981' }}>{stringMatch[1]}</span>);
+          remaining = remaining.slice(stringMatch[1].length);
+          matched = true;
+        }
+      }
+
+      // Commands (first word of line or after |, &&, ;)
+      if (!matched) {
+        const cmdMatch = remaining.match(/^(npm|npx|sam|aws|pip|python|cd|mkdir|ls|cat|echo|git|curl|docker|kubectl|terraform|brew)\b/);
+        if (cmdMatch) {
+          tokens.push(<span key={key++} style={{ color: '#60a5fa' }}>{cmdMatch[1]}</span>);
+          remaining = remaining.slice(cmdMatch[1].length);
+          matched = true;
+        }
+      }
+
+      // Flags
+      if (!matched) {
+        const flagMatch = remaining.match(/^(--?[\w-]+)/);
+        if (flagMatch) {
+          tokens.push(<span key={key++} style={{ color: '#c084fc' }}>{flagMatch[1]}</span>);
+          remaining = remaining.slice(flagMatch[1].length);
+          matched = true;
+        }
+      }
+
+      // Variables
+      if (!matched) {
+        const varMatch = remaining.match(/^(\$\w+|\$\{[^}]+\})/);
+        if (varMatch) {
+          tokens.push(<span key={key++} style={{ color: '#f97316' }}>{varMatch[1]}</span>);
+          remaining = remaining.slice(varMatch[1].length);
+          matched = true;
+        }
+      }
+
+      if (!matched) {
+        tokens.push(<span key={key++}>{remaining[0]}</span>);
+        remaining = remaining.slice(1);
+      }
+    }
+
+    return { lineNumber: lineIndex + 1, tokens };
+  });
+};
+
+// Syntax highlighting for YAML
+const highlightYaml = (code: string): HighlightedLine[] => {
+  const lines = code.split('\n');
+
+  return lines.map((line, lineIndex) => {
+    const tokens: React.ReactNode[] = [];
+    let remaining = line;
+    let key = 0;
+
+    while (remaining.length > 0) {
+      let matched = false;
+
+      // Comments
+      const commentMatch = remaining.match(/^(#.*)$/);
+      if (commentMatch) {
+        tokens.push(<span key={key++} style={{ color: '#6b7280' }}>{commentMatch[1]}</span>);
+        remaining = '';
+        matched = true;
+      }
+
+      // Keys (word followed by colon)
+      if (!matched) {
+        const keyMatch = remaining.match(/^(\s*)([\w-]+)(:)/);
+        if (keyMatch) {
+          tokens.push(<span key={key++}>{keyMatch[1]}</span>);
+          tokens.push(<span key={key++} style={{ color: '#60a5fa' }}>{keyMatch[2]}</span>);
+          tokens.push(<span key={key++} style={{ color: '#c084fc' }}>{keyMatch[3]}</span>);
+          remaining = remaining.slice(keyMatch[0].length);
+          matched = true;
+        }
+      }
+
+      // Strings
+      if (!matched) {
+        const stringMatch = remaining.match(/^("[^"]*"|'[^']*')/);
+        if (stringMatch) {
+          tokens.push(<span key={key++} style={{ color: '#10b981' }}>{stringMatch[1]}</span>);
+          remaining = remaining.slice(stringMatch[1].length);
+          matched = true;
+        }
+      }
+
+      // References and anchors
+      if (!matched) {
+        const refMatch = remaining.match(/^([*&]\w+|!\w+)/);
+        if (refMatch) {
+          tokens.push(<span key={key++} style={{ color: '#f59e0b' }}>{refMatch[1]}</span>);
+          remaining = remaining.slice(refMatch[1].length);
+          matched = true;
+        }
+      }
+
+      // Booleans and null
+      if (!matched) {
+        const boolMatch = remaining.match(/^(true|false|null|yes|no)\b/i);
+        if (boolMatch) {
+          tokens.push(<span key={key++} style={{ color: '#c084fc' }}>{boolMatch[1]}</span>);
+          remaining = remaining.slice(boolMatch[1].length);
+          matched = true;
+        }
+      }
+
+      // Numbers
+      if (!matched) {
+        const numberMatch = remaining.match(/^(\d+\.?\d*)/);
+        if (numberMatch) {
+          tokens.push(<span key={key++} style={{ color: '#f97316' }}>{numberMatch[1]}</span>);
+          remaining = remaining.slice(numberMatch[1].length);
           matched = true;
         }
       }
@@ -213,9 +365,11 @@ export function CodeBlock({ code, language = "python", title, showLineNumbers = 
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const highlightedLines = language === "python"
-    ? highlightPython(code)
-    : highlightTypeScript(code);
+  const highlightedLines =
+    language === "python" ? highlightPython(code) :
+    language === "bash" ? highlightBash(code) :
+    language === "yaml" ? highlightYaml(code) :
+    highlightTypeScript(code);
 
   return (
     <div

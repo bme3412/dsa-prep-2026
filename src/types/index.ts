@@ -7,6 +7,9 @@ export interface Operation {
   time?: string;
   space?: string;
   note: string;
+  // Use-case focused mode (for live-coding)
+  useCase?: string;
+  example?: string;
 }
 
 export interface Pattern {

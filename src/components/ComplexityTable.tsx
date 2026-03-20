@@ -1,4 +1,5 @@
 import type { Operation } from "../types";
+import { CodeBlock } from "./CodeBlock";
 
 interface Props {
   operations: Operation[];
@@ -14,6 +15,67 @@ const complexityColor = (c: string) => {
 export function ComplexityTable({ operations }: Props) {
   // Detect which format the operations use
   const usesTimeSpace = operations.length > 0 && operations[0].time !== undefined;
+  const usesUseCaseMode = operations.length > 0 && operations[0].useCase !== undefined;
+
+  // Use-case focused mode (for live-coding)
+  if (usesUseCaseMode) {
+    return (
+      <div className="space-y-6">
+        {operations.map((op) => (
+          <div
+            key={op.name}
+            className="rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-hidden"
+            style={{ background: "var(--color-bg-secondary)" }}
+          >
+            {/* Header with name and complexity badge */}
+            <div
+              className="px-5 py-3 border-b border-[var(--color-border)] flex items-center justify-between"
+              style={{ background: "var(--color-bg-tertiary)" }}
+            >
+              <code
+                className="text-base font-semibold"
+                style={{ color: "var(--color-accent)", fontFamily: "var(--font-mono)" }}
+              >
+                {op.name}
+              </code>
+              {op.note && (
+                <span
+                  className="text-xs font-mono font-semibold px-2.5 py-1 rounded"
+                  style={{
+                    color: complexityColor(op.note),
+                    background: `${complexityColor(op.note)}18`,
+                    border: `1px solid ${complexityColor(op.note)}30`,
+                  }}
+                >
+                  {op.note}
+                </span>
+              )}
+            </div>
+
+            {/* Content */}
+            <div className="p-5">
+              {/* Use case description */}
+              <p
+                className="text-sm leading-relaxed"
+                style={{ color: "var(--color-text-secondary)" }}
+              >
+                {op.useCase}
+              </p>
+
+              {/* Code example using CodeBlock component */}
+              {op.example && (
+                <CodeBlock
+                  code={op.example.trim()}
+                  language="python"
+                  showLineNumbers={false}
+                />
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] overflow-hidden">

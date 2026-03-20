@@ -1312,20 +1312,221 @@ def can_attend_all(intervals):
     },
   ],
 
-  // ==================== OPERATIONS TABLE ====================
+  // ==================== OPERATIONS CHEAT SHEET ====================
   operations: [
-    { name: "len()", time: "O(1)", space: "O(1)", note: "Pre-computed for all built-in types" },
-    { name: "sum() / min() / max()", time: "O(n)", space: "O(1)", note: "Must examine all elements" },
-    { name: "sorted()", time: "O(n log n)", space: "O(n)", note: "Creates new list" },
-    { name: "list.sort()", time: "O(n log n)", space: "O(n)", note: "In-place but uses temp space" },
-    { name: "list.append()", time: "O(1) amortized", space: "O(1)", note: "Occasional resize" },
-    { name: "list.pop()", time: "O(1)", space: "O(1)", note: "From end only; pop(0) is O(n)" },
-    { name: "list.insert(0, x)", time: "O(n)", space: "O(1)", note: "All elements shift" },
-    { name: "dict[key] / in dict", time: "O(1) avg", space: "O(1)", note: "Hash table lookup" },
-    { name: "set.add() / in set", time: "O(1) avg", space: "O(1)", note: "Hash table lookup" },
-    { name: "deque.popleft()", time: "O(1)", space: "O(1)", note: "Use instead of list.pop(0)" },
-    { name: "Counter()", time: "O(n)", space: "O(k)", note: "k = unique elements" },
-    { name: "str.split() / join()", time: "O(n)", space: "O(n)", note: "Creates new string/list" },
+    {
+      name: "len()",
+      note: "O(1)",
+      useCase: "Get size of any collection. Python pre-computes length, so it's instant even for huge lists. Use for edge case checks, loop bounds, and validation.",
+      example: `# Edge case guard
+if len(nums) == 0:
+    return None
+
+# Loop with index access
+for i in range(len(arr)):
+    print(i, arr[i])
+
+# Pythonic empty check (preferred)
+if not arr:  # same as len(arr) == 0
+    return []`,
+    },
+    {
+      name: "sum() / min() / max()",
+      note: "O(n)",
+      useCase: "Quick aggregations without writing loops. The key= parameter is powerful—use it to find min/max by a computed value (like finding shortest string or highest score).",
+      example: `total = sum(prices)  # basic sum
+
+# Conditional sum with generator
+even_sum = sum(x for x in nums if x % 2 == 0)
+
+# Find by criteria using key=
+shortest = min(words, key=len)
+top_scorer = max(students, key=lambda s: s[1])
+
+# Find closest value to target
+closest = min(arr, key=lambda x: abs(x - target))`,
+    },
+    {
+      name: "sorted()",
+      note: "O(n log n)",
+      useCase: "Returns a NEW sorted list—original unchanged. Works on any iterable. The key= parameter lets you sort by computed values. Use for interval problems, custom ordering.",
+      example: `# Sort intervals by start time
+sorted(intervals, key=lambda x: x[0])
+
+# Sort strings by length
+sorted(words, key=len)
+
+# Multi-level: by length, then alphabetically
+sorted(words, key=lambda w: (len(w), w))
+
+# Descending order
+sorted(nums, reverse=True)`,
+    },
+    {
+      name: "list.sort()",
+      note: "O(n log n)",
+      useCase: "Sorts IN PLACE and returns None (not the sorted list!). Use when you don't need the original order. Common bug: assigning result of sort().",
+      example: `# Correct usage
+nums = [3, 1, 4]
+nums.sort()  # modifies nums in place
+print(nums)  # [1, 3, 4]
+
+# COMMON BUG - sort() returns None!
+result = nums.sort()  # result is None!
+
+# If you need the sorted list as return value:
+return sorted(nums)  # creates new list`,
+    },
+    {
+      name: "list.append()",
+      note: "O(1) amortized",
+      useCase: "Add ONE item to end. Use for building result lists and stack operations (LIFO). Use extend() to add multiple items. Common gotcha: append adds the object itself, not its contents.",
+      example: `# Build result list
+result = []
+for x in data:
+    if condition(x):
+        result.append(x)
+
+# Stack pattern (LIFO)
+stack = []
+stack.append(1)  # push
+stack.pop()      # pop
+
+# GOTCHA: append vs extend
+arr = [1, 2]
+arr.append([3, 4])  # [1, 2, [3, 4]] - list as element!
+arr.extend([3, 4])  # [1, 2, 3, 4] - adds each item`,
+    },
+    {
+      name: "list.pop()",
+      note: "O(1) end / O(n) front",
+      useCase: "Remove and return item at index (default: last). pop() from end is O(1), but pop(0) is O(n) because all elements shift. Use deque for queue operations.",
+      example: `# Stack: pop from end - O(1)
+stack = [1, 2, 3]
+top = stack.pop()  # 3
+
+# Queue: pop from front - O(n) SLOW!
+queue = [1, 2, 3]
+first = queue.pop(0)  # shifts all elements!
+
+# Better: use deque for O(1) queue ops
+from collections import deque
+q = deque([1, 2, 3])
+first = q.popleft()  # O(1)`,
+    },
+    {
+      name: "list.insert(i, x)",
+      note: "O(n)",
+      useCase: "Insert at specific position. O(n) because elements must shift. Avoid repeated insert(0, x) in loops—that's O(n²). Use deque.appendleft() or build list then reverse.",
+      example: `# Insert at position
+arr = [1, 3, 4]
+arr.insert(1, 2)  # [1, 2, 3, 4]
+
+# AVOID in loop - O(n²) total!
+for x in items:
+    arr.insert(0, x)  # each insert is O(n)
+
+# Better: append then reverse
+for x in items:
+    arr.append(x)
+arr.reverse()  # single O(n) operation`,
+    },
+    {
+      name: "dict[key] / in dict",
+      note: "O(1) average",
+      useCase: "Hash table lookup—instant regardless of size. Use for memoization, counting, value mapping, and the classic Two Sum pattern. Use .get(key, default) to avoid KeyError.",
+      example: `# Two Sum pattern
+seen = {}  # value -> index
+for i, num in enumerate(nums):
+    complement = target - num
+    if complement in seen:  # O(1) lookup
+        return [seen[complement], i]
+    seen[num] = i
+
+# Counting pattern
+counts = {}
+for x in items:
+    counts[x] = counts.get(x, 0) + 1`,
+    },
+    {
+      name: "set.add() / in set",
+      note: "O(1) average",
+      useCase: "Hash table for membership testing. Use for duplicate detection, tracking visited nodes in BFS/DFS, and set operations (intersection, union, difference).",
+      example: `# Duplicate detection
+seen = set()
+for num in nums:
+    if num in seen:  # O(1) lookup
+        return True  # found duplicate
+    seen.add(num)
+
+# Set operations
+a = {1, 2, 3}
+b = {2, 3, 4}
+a & b  # {2, 3} intersection
+a | b  # {1, 2, 3, 4} union
+a - b  # {1} difference`,
+    },
+    {
+      name: "deque.popleft()",
+      note: "O(1)",
+      useCase: "Double-ended queue with O(1) operations on both ends. Essential for BFS (queue), and sliding window with maxlen. Unlike list.pop(0), this is actually fast.",
+      example: `from collections import deque
+
+# BFS template
+queue = deque([start])
+visited = {start}
+while queue:
+    node = queue.popleft()  # O(1)!
+    for neighbor in get_neighbors(node):
+        if neighbor not in visited:
+            visited.add(neighbor)
+            queue.append(neighbor)
+
+# Sliding window with auto-eviction
+window = deque(maxlen=3)  # keeps last 3`,
+    },
+    {
+      name: "Counter()",
+      note: "O(n)",
+      useCase: "Count frequencies in one line. Missing keys return 0 (no KeyError). Has useful methods: most_common(k), and supports arithmetic between Counters. Perfect for anagram checks.",
+      example: `from collections import Counter
+
+# Frequency count
+counts = Counter("abracadabra")
+# Counter({'a': 5, 'b': 2, 'r': 2, 'c': 1, 'd': 1})
+
+# Anagram check
+Counter(s1) == Counter(s2)
+
+# Top K frequent
+Counter(nums).most_common(k)
+
+# Missing keys return 0
+counts['z']  # 0, no KeyError!
+
+# Counter arithmetic
+Counter("aab") - Counter("ab")  # Counter({'a': 1})`,
+    },
+    {
+      name: "str.split() / join()",
+      note: "O(n)",
+      useCase: "Convert between strings and lists. split() parses input, join() builds output. IMPORTANT: Use join() for string building—concatenation with += in a loop is O(n²).",
+      example: `# Parse space-separated input
+words = line.split()
+nums = [int(x) for x in line.split()]
+
+# Reverse words in sentence
+' '.join(s.split()[::-1])
+
+# Build string efficiently
+# BAD - O(n²) creates new string each time
+s = ""
+for word in words:
+    s += word
+
+# GOOD - O(n) single allocation
+s = ''.join(words)`,
+    },
   ],
 
   // ==================== PATTERNS ====================

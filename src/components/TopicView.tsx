@@ -31,26 +31,26 @@ export function TopicView({ topic }: TopicViewProps) {
   return (
     <div className="min-h-screen">
       {/* Hero */}
-      <header className="px-12 pt-16 pb-10 border-b border-[var(--color-border)]">
+      <header className="px-4 sm:px-8 lg:px-12 pt-8 sm:pt-12 lg:pt-16 pb-6 sm:pb-8 lg:pb-10 border-b border-[var(--color-border)]">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <span className="text-5xl mb-4 block">{topic.icon}</span>
+          <span className="text-4xl sm:text-5xl mb-3 sm:mb-4 block">{topic.icon}</span>
           <h1
-            className="text-5xl tracking-tight mb-2"
+            className="text-3xl sm:text-4xl lg:text-5xl tracking-tight mb-2"
             style={{ fontFamily: "var(--font-display)" }}
           >
             {topic.name}
           </h1>
-          <p className="text-lg text-[var(--color-text-secondary)] max-w-2xl">
+          <p className="text-base sm:text-lg text-[var(--color-text-secondary)] max-w-2xl">
             {topic.tagline}
           </p>
         </motion.div>
 
         {/* Tab bar */}
-        <div className="flex gap-1 mt-8 bg-[var(--color-bg-tertiary)] rounded-[var(--radius-md)] p-1 w-fit">
+        <div className="flex gap-1 mt-6 sm:mt-8 bg-[var(--color-bg-tertiary)] rounded-[var(--radius-md)] p-1 w-fit overflow-x-auto">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -95,7 +95,7 @@ export function TopicView({ topic }: TopicViewProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="px-12 py-10 max-w-4xl"
+            className="px-4 sm:px-8 lg:px-12 py-6 sm:py-8 lg:py-10 max-w-4xl"
           >
             {topic.sections.map((section, i) => (
               <motion.section
@@ -140,7 +140,7 @@ export function TopicView({ topic }: TopicViewProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="px-12 py-10 max-w-4xl"
+            className="px-4 sm:px-8 lg:px-12 py-6 sm:py-8 lg:py-10 max-w-4xl"
           >
             <div className="space-y-4">
               {topic.patterns.map((pattern, i) => (
@@ -177,7 +177,7 @@ export function TopicView({ topic }: TopicViewProps) {
                 onBack={() => setActiveProblem(null)}
               />
             ) : (
-              <div className="px-12 py-10 max-w-4xl">
+              <div className="px-4 sm:px-8 lg:px-12 py-6 sm:py-8 lg:py-10 max-w-4xl">
                 <div className="grid gap-3">
                   {topic.problems.map((problem, i) => (
                     <motion.button

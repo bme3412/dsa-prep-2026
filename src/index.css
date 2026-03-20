@@ -115,3 +115,46 @@ strong, b {
 .elevated-card {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
 }
+
+/* Mobile-specific adjustments */
+@media (max-width: 1023px) {
+  /* Ensure code blocks don't overflow */
+  pre {
+    overflow-x: auto;
+    max-width: 100%;
+  }
+
+  /* Tables scroll horizontally on mobile */
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  /* Ensure images/visualizations fit */
+  img, svg, canvas {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* Prevent horizontal overflow on mobile */
+@media (max-width: 640px) {
+  body {
+    overflow-x: hidden;
+  }
+
+  /* Smaller font sizes for mobile */
+  h1 {
+    font-size: 1.75rem !important;
+  }
+
+  h2 {
+    font-size: 1.25rem !important;
+  }
+
+  /* Code blocks fit mobile screen */
+  pre, code {
+    font-size: 12px !important;
+  }
+}

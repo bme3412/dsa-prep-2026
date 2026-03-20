@@ -136,27 +136,27 @@ export function PatternFirstView({ topic }: Props) {
   return (
     <div className="min-h-screen">
       {/* Hero */}
-      <header className="px-12 pt-16 pb-8 border-b border-[var(--color-border)]">
+      <header className="px-4 sm:px-8 lg:px-12 pt-8 sm:pt-12 lg:pt-16 pb-6 sm:pb-8 border-b border-[var(--color-border)]">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <span className="text-4xl mb-3 block">{topic.icon}</span>
+          <span className="text-3xl sm:text-4xl mb-3 block">{topic.icon}</span>
           <h1
-            className="text-4xl tracking-tight mb-3"
+            className="text-2xl sm:text-3xl lg:text-4xl tracking-tight mb-2 sm:mb-3"
             style={{ fontFamily: "var(--font-display)" }}
           >
             {topic.name}
           </h1>
-          <p className="text-base text-[var(--color-text-secondary)] max-w-2xl">
+          <p className="text-sm sm:text-base text-[var(--color-text-secondary)] max-w-2xl">
             {topic.description}
           </p>
         </motion.div>
       </header>
 
       {/* Main content */}
-      <div className="px-12 py-10 max-w-4xl">
+      <div className="px-4 sm:px-8 lg:px-12 py-6 sm:py-8 lg:py-10 max-w-4xl">
         {/* Patterns */}
         {topic.patterns.map((pattern, i) => (
           <PatternSection key={pattern.name} pattern={pattern} index={i} />

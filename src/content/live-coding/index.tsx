@@ -970,7 +970,185 @@ def bfs(start, end, get_neighbors):
       ),
     },
 
-    // ==================== SECTION 7: COMMON PATTERNS ====================
+    // ==================== SECTION 7: PANDAS ESSENTIALS ====================
+    {
+      id: "pandas",
+      title: "Pandas Essentials",
+      subtitle: "Data manipulation for coding interviews",
+      content: (
+        <>
+          <Prose>
+            Pandas is Python's data manipulation library, built on NumPy. While not always available in coding interviews, many HackerRank-style tests (especially for data/ML roles) allow it. Knowing a few key operations can dramatically simplify data processing problems.
+          </Prose>
+
+          <Callout type="tip" title="When to Use Pandas">
+            If the problem involves tabular data, CSV parsing, grouping/aggregating, or complex filtering — and pandas is available — it can turn a 50-line solution into 5 lines.
+          </Callout>
+
+          <FunctionCard
+            name="DataFrame Creation"
+            syntax="pd.DataFrame(data, columns=[...])"
+            description="DataFrames are 2D labeled data structures (like a spreadsheet). Create from dicts, lists of dicts, or lists of lists. Each column is a Series."
+            example={`
+import pandas as pd
+
+# From dict (column-oriented)
+df = pd.DataFrame({
+    'name': ['Alice', 'Bob', 'Carol'],
+    'age': [25, 30, 35],
+    'score': [85, 92, 78]
+})
+
+# From list of dicts (row-oriented)
+data = [{'name': 'Alice', 'age': 25}, {'name': 'Bob', 'age': 30}]
+df = pd.DataFrame(data)
+
+# Access column
+df['name']        # Series: ['Alice', 'Bob', 'Carol']
+df.name           # Same thing
+
+# Access multiple columns
+df[['name', 'score']]  # DataFrame subset
+`}
+          />
+
+          <FunctionCard
+            name="Selecting & Filtering"
+            syntax="df[condition] / df.loc[rows, cols] / df.iloc[row_idx, col_idx]"
+            description="Filter rows with boolean conditions. Use loc for label-based indexing, iloc for integer positions. Chaining conditions uses & (and) and | (or) with parentheses."
+            example={`
+# Boolean filtering
+df[df['age'] > 25]           # Rows where age > 25
+df[df['name'] == 'Alice']    # Rows where name is Alice
+
+# Multiple conditions (need parentheses!)
+df[(df['age'] > 25) & (df['score'] >= 80)]
+
+# loc: label-based
+df.loc[0, 'name']            # First row, name column
+df.loc[:, ['name', 'age']]   # All rows, specific columns
+df.loc[df['age'] > 25, 'name']  # Names where age > 25
+
+# iloc: integer position
+df.iloc[0]          # First row
+df.iloc[0:2]        # First two rows
+df.iloc[:, 0]       # First column
+
+# Problem: Find high performers
+high_performers = df[df['score'] >= 90]['name'].tolist()
+`}
+          />
+
+          <FunctionCard
+            name="groupby() + Aggregations"
+            syntax="df.groupby(column).agg(func)"
+            description="Split data into groups, apply a function, combine results. The most powerful pandas operation for interview problems."
+            example={`
+sales = pd.DataFrame({
+    'product': ['A', 'B', 'A', 'B', 'A'],
+    'region': ['East', 'East', 'West', 'West', 'East'],
+    'amount': [100, 150, 200, 120, 80]
+})
+
+# Sum by product
+sales.groupby('product')['amount'].sum()
+# product
+# A    380
+# B    270
+
+# Multiple aggregations
+sales.groupby('product')['amount'].agg(['sum', 'mean', 'count'])
+
+# Group by multiple columns
+sales.groupby(['product', 'region'])['amount'].sum()
+
+# Named aggregations (cleaner output)
+sales.groupby('product').agg(
+    total=('amount', 'sum'),
+    avg=('amount', 'mean'),
+    n=('amount', 'count')
+)
+
+# Problem: Find product with highest total sales
+top_product = sales.groupby('product')['amount'].sum().idxmax()
+`}
+          />
+
+          <FunctionCard
+            name="apply() & transform()"
+            syntax="df.apply(func) / df['col'].apply(func)"
+            description="Apply custom functions to rows, columns, or elements. Use apply for element-wise or row/column-wise operations. Transform preserves the original shape."
+            example={`
+df = pd.DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
+
+# Apply to column (element-wise)
+df['x_squared'] = df['x'].apply(lambda v: v ** 2)
+
+# Apply to each row (axis=1)
+df['sum'] = df.apply(lambda row: row['x'] + row['y'], axis=1)
+
+# Apply with named function
+def categorize_score(score):
+    if score >= 90: return 'A'
+    elif score >= 80: return 'B'
+    else: return 'C'
+
+df['grade'] = df['score'].apply(categorize_score)
+
+# Transform: returns same-length Series (good for group operations)
+df['score_normalized'] = df.groupby('category')['score'].transform(
+    lambda x: (x - x.mean()) / x.std()
+)
+`}
+          />
+
+          <FunctionCard
+            name="Useful One-Liners"
+            syntax="Common operations"
+            description="These patterns come up frequently in data manipulation problems."
+            example={`
+import pandas as pd
+
+# Read CSV
+df = pd.read_csv('data.csv')
+
+# Drop duplicates
+df.drop_duplicates()
+df.drop_duplicates(subset=['name'])  # Based on specific columns
+
+# Handle missing values
+df.dropna()                 # Remove rows with any NaN
+df.fillna(0)                # Fill NaN with 0
+df['col'].fillna(df['col'].mean())  # Fill with mean
+
+# Sort
+df.sort_values('score', ascending=False)
+df.sort_values(['region', 'score'])  # Multi-column sort
+
+# Value counts (frequency)
+df['category'].value_counts()
+
+# Merge DataFrames (SQL-style join)
+pd.merge(df1, df2, on='id')           # Inner join
+pd.merge(df1, df2, on='id', how='left')  # Left join
+
+# Pivot table
+df.pivot_table(values='amount', index='region', columns='product', aggfunc='sum')
+
+# Quick stats
+df.describe()  # count, mean, std, min, max, quartiles
+df['col'].nunique()  # Number of unique values
+`}
+          />
+
+          <Callout type="warning" title="Performance Note">
+            Pandas is optimized for batch operations. Avoid iterating with for loops — use vectorized operations (df['col'] * 2) or apply() instead. A loop over 1M rows can be 100x slower than a vectorized operation.
+          </Callout>
+        </>
+      ),
+    },
+
+    // ==================== SECTION 8: COMMON PATTERNS ====================
     {
       id: "patterns",
       title: "Putting It Together: Common Patterns",

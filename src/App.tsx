@@ -11,10 +11,12 @@ import { productionMLContent } from "./content/production-ml";
 import { systemDesignContent } from "./content/system-design";
 import { pythonAWSContent } from "./content/python-aws";
 import { liveCodingContent } from "./content/live-coding";
+import { claudeCodeContent } from "./content/claude-code";
 import type { DataStructure } from "./types";
 
 const topics: DataStructure[] = [
   liveCodingContent,
+  claudeCodeContent,
   agentsContent,
   quantFinanceContent,
   productionMLContent,

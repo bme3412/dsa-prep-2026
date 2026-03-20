@@ -82,7 +82,7 @@ export function BedrockArchitectureViz() {
           AWS Bedrock Agents Architecture
         </h4>
         <div className="flex gap-2">
-          {steps.map((s, i) => (
+          {steps.map((_, i) => (
             <button
               key={i}
               onClick={() => setStep(i)}

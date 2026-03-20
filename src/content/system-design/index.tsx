@@ -2,445 +2,800 @@ import type { DataStructure } from "../../types";
 import { LoadBalancerViz } from "../../visualizations/system-design/LoadBalancerViz";
 import { CacheHitViz } from "../../visualizations/system-design/CacheHitViz";
 import { EventDrivenViz } from "../../visualizations/system-design/EventDrivenViz";
+import { MLSystemViz } from "../../visualizations/system-design/MLSystemViz";
+import { DataPipelineViz } from "../../visualizations/system-design/DataPipelineViz";
+import { CodeBlock } from "../../components/CodeBlock";
 
 const Prose = ({ children }: { children: React.ReactNode }) => (
-  <div className="prose prose-sm max-w-none text-[var(--color-text-secondary)] leading-relaxed">
+  <div
+    className="space-y-4 text-sm leading-relaxed [&_strong]:font-semibold [&_strong]:text-[var(--color-text-primary)]"
+    style={{ color: "var(--color-text-secondary)" }}
+  >
     {children}
   </div>
 );
+
+const Code = ({ title, children }: { title?: string; children: string }) => (
+  <CodeBlock code={children} language="python" title={title} />
+);
+
+const Callout = ({ type, title, children }: { type: "insight" | "warning" | "tip"; title: string; children: React.ReactNode }) => {
+  const colors = {
+    insight: { bg: "var(--color-accent-glow)", border: "var(--color-accent)", text: "var(--color-accent)" },
+    warning: { bg: "var(--color-coral-dim)", border: "var(--color-coral)", text: "var(--color-coral)" },
+    tip: { bg: "var(--color-green-dim)", border: "var(--color-green)", text: "var(--color-green)" },
+  };
+  const c = colors[type];
+  return (
+    <div
+      className="rounded-[var(--radius-md)] p-4 my-4"
+      style={{ background: c.bg, borderLeft: `3px solid ${c.border}` }}
+    >
+      <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: c.text }}>
+        {title}
+      </p>
+      <div className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+        {children}
+      </div>
+    </div>
+  );
+};
 
 export const systemDesignContent: DataStructure = {
   id: "system-design",
   name: "System Design",
   icon: "🏗️",
   color: "accent",
-  tagline: "Distributed systems",
-  description:
-    "Designing scalable, reliable distributed systems. Load balancing, caching, databases, message queues, and architectural patterns for AI applications.",
+  tagline: "Build scalable, reliable distributed systems on AWS for AI and financial applications.",
+  description: "Deep dive into distributed systems architecture, AWS services, ML infrastructure, data pipelines, and production patterns for enterprise AI systems.",
+  viewMode: "pattern-first",
 
   sections: [
     {
       id: "scalability",
-      title: "Scalability fundamentals",
+      title: "Scalability Fundamentals",
       subtitle: "Horizontal vs vertical scaling",
       content: (
-        <>
-          <Prose>
-            Scalability is the ability to handle increased load. Two main approaches:
-          </Prose>
-          <div className="grid grid-cols-2 gap-4 my-4">
-            <div
-              className="p-3 rounded-[var(--radius-md)]"
-              style={{ background: "var(--color-bg-tertiary)" }}
-            >
-              <p className="text-xs font-semibold mb-2" style={{ color: "var(--color-accent)" }}>
-                Vertical Scaling (Scale Up)
-              </p>
-              <ul className="text-xs space-y-1" style={{ color: "var(--color-text-secondary)" }}>
-                <li>• Add more CPU, RAM, storage</li>
-                <li>• Simple, no code changes</li>
-                <li>• Limited by hardware ceiling</li>
-                <li>• Single point of failure</li>
-              </ul>
-            </div>
-            <div
-              className="p-3 rounded-[var(--radius-md)]"
-              style={{ background: "var(--color-bg-tertiary)" }}
-            >
-              <p className="text-xs font-semibold mb-2" style={{ color: "var(--color-green)" }}>
-                Horizontal Scaling (Scale Out)
-              </p>
-              <ul className="text-xs space-y-1" style={{ color: "var(--color-text-secondary)" }}>
-                <li>• Add more machines</li>
-                <li>• Requires distributed design</li>
-                <li>• Theoretically unlimited</li>
-                <li>• Better fault tolerance</li>
-              </ul>
-            </div>
-          </div>
+        <Prose>
+          <p>
+            <strong>Scalability</strong> is the ability to handle increased load by adding resources. Two fundamental approaches exist: <strong>vertical scaling</strong> (scale up) adds more power to existing machines—more CPU, RAM, or faster storage. <strong>Horizontal scaling</strong> (scale out) adds more machines to distribute the load. Modern cloud-native systems strongly favor horizontal scaling because it removes single points of failure and has no hardware ceiling.
+          </p>
+          <p>
+            In AWS, horizontal scaling is achieved through <strong>Auto Scaling Groups</strong> for EC2, <strong>Lambda</strong> for serverless (scales to thousands of concurrent executions), and <strong>DynamoDB on-demand</strong> for databases. The key insight is that horizontal scaling requires your application to be <strong>stateless</strong>—any instance can handle any request. State must be externalized to databases, caches, or object storage.
+          </p>
           <LoadBalancerViz />
-        </>
+          <p>
+            <strong>Load balancers</strong> distribute traffic across instances. <strong>Application Load Balancer (ALB)</strong> operates at Layer 7 (HTTP) with path-based routing, ideal for microservices. <strong>Network Load Balancer (NLB)</strong> operates at Layer 4 (TCP) with ultra-low latency, ideal for financial trading systems. Both support health checks to route traffic only to healthy instances.
+          </p>
+          <Callout type="insight" title="For financial systems">
+            Investment firms often need <strong>both</strong> scaling strategies. Real-time pricing uses horizontal scaling for throughput, while quantitative models may need vertical scaling for in-memory computation. Design systems to scale each component appropriately.
+          </Callout>
+        </Prose>
       ),
     },
     {
       id: "cap-theorem",
-      title: "CAP & PACELC",
+      title: "CAP & PACELC Theorems",
       subtitle: "Distributed systems tradeoffs",
       content: (
-        <>
-          <Prose>
-            <strong>CAP Theorem:</strong> In a distributed system, you can only guarantee 2 of 3:
-            Consistency, Availability, Partition tolerance. Since network partitions are inevitable,
-            the real choice is between C and A during partitions.
-          </Prose>
-          <div className="grid grid-cols-3 gap-3 my-4">
-            {[
-              { letter: "C", name: "Consistency", desc: "All nodes see same data", example: "Banking" },
-              { letter: "A", name: "Availability", desc: "Every request gets response", example: "Social media" },
-              { letter: "P", name: "Partition Tolerance", desc: "Works despite network splits", example: "Required" },
-            ].map((item) => (
-              <div
-                key={item.letter}
-                className="p-3 rounded-[var(--radius-md)]"
-                style={{ background: "var(--color-bg-tertiary)" }}
-              >
-                <p className="text-lg font-bold" style={{ color: "var(--color-accent)" }}>
-                  {item.letter}
-                </p>
-                <p className="text-xs font-medium">{item.name}</p>
-                <p className="text-[10px] mt-1" style={{ color: "var(--color-text-muted)" }}>
-                  {item.desc}
-                </p>
-                <p className="text-[10px]" style={{ color: "var(--color-teal)" }}>
-                  e.g., {item.example}
-                </p>
-              </div>
-            ))}
-          </div>
-          <div
-            className="rounded-[var(--radius-md)] p-3"
-            style={{ background: "var(--color-accent-glow)" }}
-          >
-            <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-              <strong style={{ color: "var(--color-accent)" }}>PACELC:</strong>{" "}
-              Extends CAP to normal operation. If no Partition, choose between Latency and Consistency.
-              Most systems choose eventual consistency for lower latency.
-            </p>
-          </div>
-        </>
+        <Prose>
+          <p>
+            The <strong>CAP theorem</strong> states that in a distributed system, you can only guarantee two of three properties: <strong>Consistency</strong> (all nodes see the same data), <strong>Availability</strong> (every request receives a response), and <strong>Partition tolerance</strong> (system works despite network splits). Since network partitions are inevitable in distributed systems, the real choice is between consistency and availability <strong>during</strong> a partition.
+          </p>
+          <p>
+            <strong>CP systems</strong> (like DynamoDB with strong consistency) sacrifice availability during partitions—they refuse requests rather than return stale data. This is critical for financial systems where incorrect data can cause compliance violations or trading losses. <strong>AP systems</strong> (like DynamoDB with eventual consistency) remain available but may return stale data temporarily.
+          </p>
+          <p>
+            <strong>PACELC</strong> extends CAP to normal operation: if there's no Partition, you choose between Latency and Consistency. Most systems choose eventual consistency for lower latency during normal operation. DynamoDB lets you choose per-request: <code>ConsistentRead=True</code> for strong consistency (higher latency), or eventual consistency for faster reads.
+          </p>
+          <Callout type="warning" title="Financial implications">
+            Portfolio valuations often need <strong>strong consistency</strong>—showing different NAVs to different users is unacceptable. However, market data feeds can tolerate <strong>eventual consistency</strong> since prices update frequently anyway. Design your consistency requirements per data type, not system-wide.
+          </Callout>
+        </Prose>
+      ),
+    },
+    {
+      id: "aws-architecture",
+      title: "AWS Architecture for AI Systems",
+      subtitle: "Lambda, DynamoDB, S3, Step Functions",
+      content: (
+        <Prose>
+          <p>
+            Modern AI systems on AWS follow a <strong>serverless-first</strong> approach where possible. <strong>Lambda</strong> handles inference requests with automatic scaling, <strong>API Gateway</strong> provides the HTTP interface with authentication and throttling, <strong>DynamoDB</strong> stores feature data with single-digit millisecond latency, and <strong>S3</strong> stores models, training data, and artifacts. <strong>Step Functions</strong> orchestrates complex workflows like model training pipelines.
+          </p>
+          <MLSystemViz />
+          <p>
+            For ML inference, the choice between <strong>Lambda</strong> and <strong>SageMaker Endpoints</strong> depends on latency requirements and model size. Lambda has a 15-minute timeout and 10GB memory limit, making it suitable for lightweight models. SageMaker Endpoints support GPU inference, larger models, and persistent instances for ultra-low latency. Many production systems use both: Lambda for simple models, SageMaker for complex ones.
+          </p>
+          <Code title="Lambda inference handler with DynamoDB feature lookup">
+{`import boto3
+import json
+from aws_lambda_powertools import Logger, Tracer
+from aws_lambda_powertools.utilities.typing import LambdaContext
+
+logger = Logger()
+tracer = Tracer()
+dynamodb = boto3.resource("dynamodb")
+feature_table = dynamodb.Table("ml-features")
+
+@logger.inject_lambda_context
+@tracer.capture_lambda_handler
+def handler(event: dict, context: LambdaContext) -> dict:
+    """ML inference with feature store lookup."""
+    body = json.loads(event["body"])
+    entity_id = body["entity_id"]
+
+    # Fetch features from DynamoDB (sub-ms latency)
+    with tracer.capture_method("fetch_features"):
+        response = feature_table.get_item(
+            Key={"entity_id": entity_id},
+            ConsistentRead=False  # Eventual consistency for speed
+        )
+        features = response.get("Item", {}).get("features", {})
+
+    # Run inference
+    with tracer.capture_method("run_inference"):
+        prediction = model.predict(features)
+
+    # Log for monitoring
+    logger.info("Inference complete", extra={
+        "entity_id": entity_id,
+        "prediction": prediction,
+        "feature_count": len(features)
+    })
+
+    return {
+        "statusCode": 200,
+        "body": json.dumps({"prediction": prediction})
+    }`}
+          </Code>
+          <Callout type="tip" title="Lambda Powertools">
+            <strong>AWS Lambda Powertools</strong> provides structured logging, distributed tracing (X-Ray), and metrics out of the box. Use it for all production Lambda functions—it's the enterprise standard for observability.
+          </Callout>
+        </Prose>
       ),
     },
     {
       id: "databases",
-      title: "Database selection",
-      subtitle: "SQL vs NoSQL vs Vector",
+      title: "Database Selection",
+      subtitle: "SQL vs NoSQL vs Vector vs Time Series",
       content: (
-        <>
-          <Prose>
-            Choose databases based on data model, query patterns, and consistency requirements.
-            Modern systems often use multiple databases (polyglot persistence).
-          </Prose>
-          <div className="grid grid-cols-3 gap-3 my-4">
-            {[
-              {
-                type: "Relational (SQL)",
-                examples: "PostgreSQL, MySQL",
-                use: "Structured data, ACID, joins",
-                color: "var(--color-accent)",
-              },
-              {
-                type: "Document (NoSQL)",
-                examples: "MongoDB, DynamoDB",
-                use: "Flexible schema, nested data",
-                color: "var(--color-green)",
-              },
-              {
-                type: "Vector DB",
-                examples: "Pinecone, Weaviate",
-                use: "Embeddings, similarity search",
-                color: "var(--color-teal)",
-              },
-              {
-                type: "Key-Value",
-                examples: "Redis, Memcached",
-                use: "Caching, sessions, fast lookups",
-                color: "var(--color-coral)",
-              },
-              {
-                type: "Time Series",
-                examples: "InfluxDB, TimescaleDB",
-                use: "Metrics, IoT, analytics",
-                color: "var(--color-amber)",
-              },
-              {
-                type: "Graph",
-                examples: "Neo4j, Neptune",
-                use: "Relationships, recommendations",
-                color: "var(--color-text-muted)",
-              },
-            ].map((db) => (
-              <div
-                key={db.type}
-                className="p-2 rounded-[var(--radius-sm)]"
-                style={{ background: "var(--color-bg-tertiary)" }}
-              >
-                <p className="text-xs font-semibold" style={{ color: db.color }}>
-                  {db.type}
-                </p>
-                <p className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>
-                  {db.examples}
-                </p>
-                <p className="text-[10px] mt-1">{db.use}</p>
-              </div>
-            ))}
-          </div>
-        </>
+        <Prose>
+          <p>
+            Database selection depends on <strong>data model</strong>, <strong>query patterns</strong>, <strong>consistency requirements</strong>, and <strong>scale</strong>. Modern systems often use <strong>polyglot persistence</strong>—different databases for different workloads. For financial AI systems, typical combinations include: <strong>PostgreSQL/Aurora</strong> for transactional data, <strong>DynamoDB</strong> for high-throughput key-value access, <strong>OpenSearch</strong> for vector similarity and full-text search, and <strong>TimescaleDB/Timestream</strong> for market data time series.
+          </p>
+          <p>
+            <strong>DynamoDB</strong> is the workhorse for serverless applications. It provides single-digit millisecond latency at any scale with automatic replication across availability zones. Key design decisions: <strong>partition key</strong> determines data distribution (choose high cardinality), <strong>sort key</strong> enables range queries within a partition. Use <strong>GSIs</strong> (Global Secondary Indexes) for alternative access patterns, but be aware they add cost and latency.
+          </p>
+          <Code title="DynamoDB single-table design for portfolio system">
+{`import boto3
+from boto3.dynamodb.conditions import Key
+from decimal import Decimal
+
+dynamodb = boto3.resource("dynamodb")
+table = dynamodb.Table("portfolio-system")
+
+# Single table with multiple entity types
+# PK: PORTFOLIO#<id> or POSITION#<id> or TRADE#<id>
+# SK: METADATA or POSITION#<symbol> or TRADE#<timestamp>
+
+def get_portfolio_with_positions(portfolio_id: str) -> dict:
+    """Fetch portfolio and all positions in single query."""
+    response = table.query(
+        KeyConditionExpression=Key("PK").eq(f"PORTFOLIO#{portfolio_id}"),
+        # Returns: METADATA item + all POSITION#<symbol> items
+    )
+
+    portfolio = None
+    positions = []
+    for item in response["Items"]:
+        if item["SK"] == "METADATA":
+            portfolio = item
+        elif item["SK"].startswith("POSITION#"):
+            positions.append(item)
+
+    return {"portfolio": portfolio, "positions": positions}
+
+def record_trade(portfolio_id: str, trade: dict):
+    """Record trade with conditional write for optimistic locking."""
+    table.put_item(
+        Item={
+            "PK": f"PORTFOLIO#{portfolio_id}",
+            "SK": f"TRADE#{trade['timestamp']}",
+            "symbol": trade["symbol"],
+            "quantity": Decimal(str(trade["quantity"])),
+            "price": Decimal(str(trade["price"])),
+            "side": trade["side"],
+            "GSI1PK": f"SYMBOL#{trade['symbol']}",  # Query trades by symbol
+            "GSI1SK": trade["timestamp"],
+        },
+        ConditionExpression="attribute_not_exists(PK)"  # Prevent duplicates
+    )`}
+          </Code>
+          <Callout type="insight" title="Vector databases for AI">
+            For RAG and semantic search, <strong>OpenSearch</strong> (managed Elasticsearch) or <strong>pgvector</strong> (PostgreSQL extension) are common choices on AWS. OpenSearch integrates with Bedrock Knowledge Bases for managed RAG. For pure vector workloads, <strong>Pinecone</strong> or <strong>Weaviate</strong> offer simpler operations but less AWS integration.
+          </Callout>
+        </Prose>
       ),
     },
     {
       id: "caching",
-      title: "Caching strategies",
-      subtitle: "Trade memory for latency",
+      title: "Caching Strategies",
+      subtitle: "Trade memory for latency and cost",
       content: (
-        <>
-          <Prose>
-            Caching reduces latency and database load by storing frequently accessed data
-            in memory. Key decisions: what to cache, when to invalidate, and cache placement.
-          </Prose>
+        <Prose>
+          <p>
+            Caching reduces latency and database load by storing frequently accessed data in memory. <strong>ElastiCache (Redis)</strong> is the standard choice for AWS—it provides sub-millisecond latency, persistence options, and cluster mode for horizontal scaling. Key caching patterns: <strong>cache-aside</strong> (application manages cache explicitly), <strong>read-through</strong> (cache fetches from database on miss), <strong>write-through</strong> (writes go to cache and database together), and <strong>write-behind</strong> (async database writes for speed).
+          </p>
           <CacheHitViz />
-          <div className="grid grid-cols-2 gap-4 my-4">
-            <div
-              className="p-3 rounded-[var(--radius-md)]"
-              style={{ background: "var(--color-bg-tertiary)" }}
-            >
-              <p className="text-xs font-semibold mb-2">Caching Patterns</p>
-              <ul className="text-xs space-y-1" style={{ color: "var(--color-text-secondary)" }}>
-                <li>• <strong>Cache-aside:</strong> App manages cache reads/writes</li>
-                <li>• <strong>Read-through:</strong> Cache fetches on miss</li>
-                <li>• <strong>Write-through:</strong> Write to cache and DB together</li>
-                <li>• <strong>Write-behind:</strong> Async DB writes for speed</li>
-              </ul>
-            </div>
-            <div
-              className="p-3 rounded-[var(--radius-md)]"
-              style={{ background: "var(--color-bg-tertiary)" }}
-            >
-              <p className="text-xs font-semibold mb-2">Invalidation Strategies</p>
-              <ul className="text-xs space-y-1" style={{ color: "var(--color-text-secondary)" }}>
-                <li>• <strong>TTL:</strong> Expire after time limit</li>
-                <li>• <strong>Event-based:</strong> Invalidate on write</li>
-                <li>• <strong>LRU:</strong> Evict least recently used</li>
-                <li>• <strong>LFU:</strong> Evict least frequently used</li>
-              </ul>
-            </div>
-          </div>
-          <div
-            className="rounded-[var(--radius-md)] p-3"
-            style={{ background: "var(--color-teal-dim)" }}
-          >
-            <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-              <strong style={{ color: "var(--color-teal)" }}>For LLM apps:</strong>{" "}
-              Semantic caching matches similar queries (not exact) using embeddings.
-              This can reduce token costs by 50%+ for repeated questions.
-            </p>
-          </div>
-        </>
+          <p>
+            <strong>Cache invalidation</strong> is famously hard. Options include: <strong>TTL-based expiration</strong> (simple but may serve stale data), <strong>event-driven invalidation</strong> (invalidate on database writes via DynamoDB Streams or SNS), and <strong>versioned keys</strong> (include version in cache key, increment on write). For financial data, TTL is often unacceptable—use event-driven invalidation with short fallback TTLs.
+          </p>
+          <Code title="Redis caching with write-through invalidation">
+{`import redis
+import json
+import hashlib
+from functools import wraps
+from typing import Callable, Any
+
+redis_client = redis.Redis(host="elasticache-endpoint", port=6379, decode_responses=True)
+
+def cache_with_invalidation(ttl: int = 300, prefix: str = "cache"):
+    """Cache decorator with event-driven invalidation support."""
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        def wrapper(*args, **kwargs) -> Any:
+            # Generate cache key from function name and arguments
+            key_data = f"{func.__name__}:{args}:{sorted(kwargs.items())}"
+            cache_key = f"{prefix}:{hashlib.md5(key_data.encode()).hexdigest()}"
+
+            # Check cache
+            cached = redis_client.get(cache_key)
+            if cached:
+                return json.loads(cached)
+
+            # Execute function
+            result = func(*args, **kwargs)
+
+            # Store in cache with TTL
+            redis_client.setex(cache_key, ttl, json.dumps(result))
+
+            # Track key for invalidation (store reverse mapping)
+            entity_id = kwargs.get("entity_id") or args[0] if args else None
+            if entity_id:
+                redis_client.sadd(f"invalidation:{entity_id}", cache_key)
+
+            return result
+        return wrapper
+    return decorator
+
+def invalidate_entity(entity_id: str):
+    """Invalidate all cache entries for an entity (call on writes)."""
+    invalidation_key = f"invalidation:{entity_id}"
+    cache_keys = redis_client.smembers(invalidation_key)
+
+    if cache_keys:
+        redis_client.delete(*cache_keys)
+        redis_client.delete(invalidation_key)
+
+# Semantic caching for LLM responses
+def semantic_cache_lookup(query: str, threshold: float = 0.92) -> str | None:
+    """Check if similar query exists in cache using embeddings."""
+    query_embedding = embed_text(query)
+
+    # Search in vector index (e.g., Redis Search or dedicated vector DB)
+    results = vector_search(query_embedding, top_k=1)
+
+    if results and results[0].score >= threshold:
+        return results[0].cached_response
+    return None`}
+          </Code>
+          <Callout type="tip" title="Semantic caching for LLMs">
+            For LLM applications, <strong>semantic caching</strong> matches similar queries (not exact) using embeddings. This can reduce token costs by 40-80% for repeated questions with slight variations. Implement with vector search on query embeddings.
+          </Callout>
+        </Prose>
       ),
     },
     {
-      id: "rate-limiting",
-      title: "Rate limiting",
-      subtitle: "Protect services from overload",
+      id: "data-pipelines",
+      title: "Data Pipeline Architecture",
+      subtitle: "Batch vs streaming, ETL vs ELT",
       content: (
-        <>
-          <Prose>
-            Rate limiting protects services from abuse, ensures fair usage, and controls costs.
-            Critical for LLM APIs where each request costs money.
-          </Prose>
-          <div
-            className="rounded-[var(--radius-md)] p-4 my-4"
-            style={{ background: "var(--color-bg-tertiary)" }}
-          >
-            <p className="text-xs font-semibold mb-2">Token Bucket Algorithm</p>
-            <pre
-              className="text-xs leading-relaxed overflow-x-auto"
-              style={{ fontFamily: "var(--font-mono)", color: "var(--color-text-primary)" }}
-            >
-{`import time
-from threading import Lock
+        <Prose>
+          <p>
+            Data pipelines move data from sources to destinations with transformations. The fundamental choice is between <strong>batch processing</strong> (process data in scheduled chunks) and <strong>stream processing</strong> (process data continuously as it arrives). Batch is simpler and cheaper for analytics workloads; streaming is necessary for real-time applications like live trading signals or fraud detection.
+          </p>
+          <DataPipelineViz />
+          <p>
+            On AWS, <strong>batch pipelines</strong> typically use: S3 as the data lake, <strong>Glue</strong> or <strong>EMR</strong> for Spark-based transformations, and <strong>Redshift</strong> or <strong>Athena</strong> for analytics. <strong>Streaming pipelines</strong> use: <strong>Kinesis Data Streams</strong> for ingestion, <strong>Kinesis Data Analytics</strong> (Flink) or <strong>Lambda</strong> for processing, and <strong>DynamoDB</strong> or <strong>OpenSearch</strong> for real-time serving. The <strong>Lambda architecture</strong> combines both: batch for accuracy, streaming for speed.
+          </p>
+          <Code title="Kinesis stream processing with Lambda">
+{`import boto3
+import json
+import base64
+from aws_lambda_powertools import Logger
+from decimal import Decimal
 
-class TokenBucket:
-    def __init__(self, rate: float, capacity: int):
-        self.rate = rate          # tokens per second
-        self.capacity = capacity  # max tokens
-        self.tokens = capacity
-        self.last_refill = time.time()
-        self.lock = Lock()
+logger = Logger()
+dynamodb = boto3.resource("dynamodb")
+signals_table = dynamodb.Table("trading-signals")
 
-    def consume(self, tokens: int = 1) -> bool:
-        with self.lock:
-            # Refill tokens based on elapsed time
-            now = time.time()
-            elapsed = now - self.last_refill
-            self.tokens = min(
-                self.capacity,
-                self.tokens + elapsed * self.rate
-            )
-            self.last_refill = now
+def handler(event: dict, context) -> dict:
+    """Process market data stream and generate trading signals."""
+    processed = 0
+    failed = 0
 
-            # Try to consume
-            if self.tokens >= tokens:
-                self.tokens -= tokens
-                return True
-            return False`}
-            </pre>
-          </div>
-          <div className="grid grid-cols-3 gap-3 my-4">
-            {[
-              { name: "Token Bucket", desc: "Smooth, allows bursts" },
-              { name: "Sliding Window", desc: "Precise, higher memory" },
-              { name: "Fixed Window", desc: "Simple, edge spikes" },
-            ].map((algo) => (
-              <div
-                key={algo.name}
-                className="p-2 rounded-[var(--radius-sm)]"
-                style={{ background: "var(--color-bg-tertiary)" }}
-              >
-                <p className="text-xs font-medium">{algo.name}</p>
-                <p className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>
-                  {algo.desc}
-                </p>
-              </div>
-            ))}
-          </div>
-        </>
+    for record in event["Records"]:
+        try:
+            # Decode Kinesis record
+            payload = base64.b64decode(record["kinesis"]["data"])
+            data = json.loads(payload)
+
+            # Process market data
+            signal = process_market_data(data)
+
+            if signal:
+                # Write signal to DynamoDB for downstream consumers
+                signals_table.put_item(Item={
+                    "symbol": signal["symbol"],
+                    "timestamp": signal["timestamp"],
+                    "signal_type": signal["type"],
+                    "strength": Decimal(str(signal["strength"])),
+                    "ttl": int(signal["timestamp"]) + 3600  # 1 hour TTL
+                })
+
+            processed += 1
+
+        except Exception as e:
+            logger.error(f"Failed to process record: {e}")
+            failed += 1
+
+    logger.info(f"Processed {processed} records, {failed} failures")
+
+    # Return batch item failures for retry
+    return {
+        "batchItemFailures": [
+            {"itemIdentifier": record["kinesis"]["sequenceNumber"]}
+            for record in event["Records"][:failed]
+        ]
+    }
+
+def process_market_data(data: dict) -> dict | None:
+    """Generate trading signal from market data."""
+    # Example: Simple moving average crossover
+    symbol = data["symbol"]
+    price = data["price"]
+
+    # Fetch recent prices from cache/DB
+    recent_prices = get_recent_prices(symbol, window=20)
+    recent_prices.append(price)
+
+    sma_5 = sum(recent_prices[-5:]) / 5
+    sma_20 = sum(recent_prices) / len(recent_prices)
+
+    if sma_5 > sma_20 * 1.02:  # 2% above
+        return {"symbol": symbol, "type": "BUY", "strength": 0.8, "timestamp": data["timestamp"]}
+    elif sma_5 < sma_20 * 0.98:  # 2% below
+        return {"symbol": symbol, "type": "SELL", "strength": 0.8, "timestamp": data["timestamp"]}
+
+    return None`}
+          </Code>
+          <Callout type="insight" title="Feature engineering at scale">
+            For ML systems, data pipelines feed <strong>feature stores</strong>. Batch pipelines compute features from historical data (offline store), while streaming pipelines update features in real-time (online store). SageMaker Feature Store or a custom DynamoDB-based solution provides both.
+          </Callout>
+        </Prose>
       ),
     },
     {
       id: "event-driven",
-      title: "Event-driven architecture",
-      subtitle: "Decoupled async systems",
+      title: "Event-Driven Architecture",
+      subtitle: "Decoupled async systems with SNS, SQS, EventBridge",
       content: (
-        <>
-          <Prose>
-            Event-driven architecture decouples services through asynchronous message passing.
-            Publishers emit events without knowing who consumes them. Enables scalability,
-            resilience, and loose coupling.
-          </Prose>
+        <Prose>
+          <p>
+            Event-driven architecture decouples services through asynchronous message passing. <strong>Publishers</strong> emit events without knowing who consumes them. <strong>Consumers</strong> process events independently. This enables scalability (consumers scale independently), resilience (failures don't cascade), and loose coupling (services can evolve independently).
+          </p>
           <EventDrivenViz />
-          <div
-            className="rounded-[var(--radius-md)] p-4 my-4"
-            style={{ background: "var(--color-bg-tertiary)" }}
-          >
-            <p className="text-xs font-semibold mb-2">Event Consumer Pattern</p>
-            <pre
-              className="text-xs leading-relaxed overflow-x-auto"
-              style={{ fontFamily: "var(--font-mono)", color: "var(--color-text-primary)" }}
-            >
+          <p>
+            AWS provides three core event services: <strong>SNS</strong> (Simple Notification Service) for pub/sub fan-out—one message to many subscribers. <strong>SQS</strong> (Simple Queue Service) for point-to-point queuing with guaranteed delivery and dead-letter queues. <strong>EventBridge</strong> for event routing with content-based filtering—the most flexible option for complex event-driven systems. A common pattern: EventBridge for routing, SQS for buffering, Lambda for processing.
+          </p>
+          <Code title="EventBridge-driven order processing">
 {`import boto3
 import json
+from dataclasses import dataclass, asdict
+from datetime import datetime
+from aws_lambda_powertools import Logger
 
-class SQSConsumer:
-    def __init__(self, queue_url: str):
-        self.sqs = boto3.client('sqs')
-        self.queue_url = queue_url
+logger = Logger()
+eventbridge = boto3.client("events")
 
-    def process_messages(self, handler):
-        while True:
-            response = self.sqs.receive_message(
-                QueueUrl=self.queue_url,
-                MaxNumberOfMessages=10,
-                WaitTimeSeconds=20  # Long polling
-            )
+@dataclass
+class OrderEvent:
+    order_id: str
+    symbol: str
+    side: str  # BUY or SELL
+    quantity: float
+    price: float
+    status: str
+    timestamp: str = None
 
-            for message in response.get('Messages', []):
-                try:
-                    body = json.loads(message['Body'])
-                    handler(body)
+    def __post_init__(self):
+        self.timestamp = self.timestamp or datetime.utcnow().isoformat()
 
-                    # Delete on success
-                    self.sqs.delete_message(
-                        QueueUrl=self.queue_url,
-                        ReceiptHandle=message['ReceiptHandle']
-                    )
-                except Exception as e:
-                    # Message returns to queue after visibility timeout
-                    print(f"Error: {e}")`}
-            </pre>
-          </div>
-        </>
+def publish_order_event(order: OrderEvent, event_type: str):
+    """Publish order event to EventBridge."""
+    eventbridge.put_events(
+        Entries=[{
+            "Source": "trading.orders",
+            "DetailType": event_type,  # e.g., "OrderCreated", "OrderFilled"
+            "Detail": json.dumps(asdict(order)),
+            "EventBusName": "trading-events",
+        }]
+    )
+    logger.info(f"Published {event_type}", extra={"order_id": order.order_id})
+
+# EventBridge rule (in CDK/CloudFormation):
+# Pattern: {"source": ["trading.orders"], "detail-type": ["OrderFilled"]}
+# Target: SQS queue for risk calculation
+
+def risk_calculator_handler(event: dict, context):
+    """Process filled orders for risk calculation (SQS consumer)."""
+    for record in event["Records"]:
+        body = json.loads(record["body"])
+        order_detail = json.loads(body["detail"])
+
+        # Update portfolio risk metrics
+        update_portfolio_risk(
+            order_id=order_detail["order_id"],
+            symbol=order_detail["symbol"],
+            quantity=order_detail["quantity"],
+            side=order_detail["side"]
+        )
+
+        # Publish risk update event
+        eventbridge.put_events(
+            Entries=[{
+                "Source": "trading.risk",
+                "DetailType": "RiskUpdated",
+                "Detail": json.dumps({
+                    "portfolio_id": get_portfolio_id(order_detail["order_id"]),
+                    "new_var": calculate_var(),
+                    "timestamp": datetime.utcnow().isoformat()
+                }),
+                "EventBusName": "trading-events",
+            }]
+        )`}
+          </Code>
+          <Callout type="warning" title="Eventual consistency">
+            Event-driven systems are <strong>eventually consistent</strong> by nature. Events may arrive out of order, be duplicated, or be delayed. Design consumers to be <strong>idempotent</strong> (safe to process the same event twice) and handle out-of-order delivery. Use event timestamps and version numbers for ordering.
+          </Callout>
+        </Prose>
       ),
     },
     {
-      id: "microservices",
-      title: "Microservices vs monolith",
-      subtitle: "When to split",
+      id: "ml-infrastructure",
+      title: "ML System Infrastructure",
+      subtitle: "Model serving, feature stores, inference pipelines",
       content: (
-        <>
-          <Prose>
-            Start with a modular monolith. Split into microservices when you have clear
-            boundaries, different scaling needs, or team autonomy requirements.
-          </Prose>
-          <div className="grid grid-cols-2 gap-4 my-4">
-            <div
-              className="p-3 rounded-[var(--radius-md)]"
-              style={{ background: "var(--color-bg-tertiary)" }}
-            >
-              <p className="text-xs font-semibold mb-2" style={{ color: "var(--color-green)" }}>
-                Monolith Advantages
-              </p>
-              <ul className="text-xs space-y-1" style={{ color: "var(--color-text-secondary)" }}>
-                <li>• Simpler deployment and testing</li>
-                <li>• No network latency between components</li>
-                <li>• Easier debugging and tracing</li>
-                <li>• Better for small teams</li>
-              </ul>
-            </div>
-            <div
-              className="p-3 rounded-[var(--radius-md)]"
-              style={{ background: "var(--color-bg-tertiary)" }}
-            >
-              <p className="text-xs font-semibold mb-2" style={{ color: "var(--color-accent)" }}>
-                Microservices Advantages
-              </p>
-              <ul className="text-xs space-y-1" style={{ color: "var(--color-text-secondary)" }}>
-                <li>• Independent deployment and scaling</li>
-                <li>• Technology flexibility per service</li>
-                <li>• Team autonomy and ownership</li>
-                <li>• Fault isolation</li>
-              </ul>
-            </div>
-          </div>
-          <div
-            className="rounded-[var(--radius-md)] p-3"
-            style={{ background: "var(--color-coral-dim)" }}
-          >
-            <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-              <strong style={{ color: "var(--color-coral)" }}>Warning:</strong>{" "}
-              Microservices add complexity: service discovery, distributed tracing, eventual
-              consistency, network failures. Don't adopt prematurely.
-            </p>
-          </div>
-        </>
+        <Prose>
+          <p>
+            Production ML systems have three core components beyond the model itself: <strong>feature stores</strong> that provide consistent features for training and serving, <strong>model registries</strong> that version and deploy models, and <strong>inference pipelines</strong> that serve predictions with low latency. Each component needs careful design for reliability, performance, and cost.
+          </p>
+          <MLSystemViz />
+          <p>
+            <strong>Feature stores</strong> solve the training-serving skew problem. They provide an <strong>offline store</strong> (S3/data warehouse) for training with point-in-time correctness, and an <strong>online store</strong> (DynamoDB/Redis) for low-latency serving. SageMaker Feature Store is the managed option; for more control, build on DynamoDB with Lambda triggers to sync from batch pipelines.
+          </p>
+          <Code title="Feature store with online/offline sync">
+{`import boto3
+from datetime import datetime
+from decimal import Decimal
+import pandas as pd
+
+dynamodb = boto3.resource("dynamodb")
+s3 = boto3.client("s3")
+
+class FeatureStore:
+    """Simple feature store with online and offline stores."""
+
+    def __init__(self, table_name: str, s3_bucket: str):
+        self.online_table = dynamodb.Table(table_name)
+        self.s3_bucket = s3_bucket
+
+    def get_online_features(self, entity_id: str, feature_names: list[str]) -> dict:
+        """Get features from online store (DynamoDB) for inference."""
+        response = self.online_table.get_item(
+            Key={"entity_id": entity_id},
+            ProjectionExpression=", ".join(feature_names)
+        )
+        return response.get("Item", {})
+
+    def put_features(self, entity_id: str, features: dict, event_time: datetime = None):
+        """Write features to online store with event time."""
+        event_time = event_time or datetime.utcnow()
+
+        item = {
+            "entity_id": entity_id,
+            "event_time": event_time.isoformat(),
+            **{k: Decimal(str(v)) if isinstance(v, float) else v
+               for k, v in features.items()}
+        }
+
+        self.online_table.put_item(Item=item)
+
+    def get_historical_features(
+        self,
+        entity_ids: list[str],
+        feature_names: list[str],
+        as_of_time: datetime
+    ) -> pd.DataFrame:
+        """Get point-in-time correct features from offline store for training."""
+        # Query S3/Athena for historical data
+        # Filter to features available as of as_of_time
+        # This prevents data leakage in training
+
+        query = f"""
+        SELECT entity_id, {', '.join(feature_names)}, event_time
+        FROM feature_store_offline
+        WHERE entity_id IN ({', '.join(f"'{e}'" for e in entity_ids)})
+          AND event_time <= '{as_of_time.isoformat()}'
+        """
+
+        # Execute via Athena and return DataFrame
+        return run_athena_query(query)
+
+    def batch_ingest(self, df: pd.DataFrame, entity_id_col: str, event_time_col: str):
+        """Batch ingest features from training pipeline."""
+        # Write to S3 for offline store
+        s3_key = f"features/{datetime.utcnow().strftime('%Y/%m/%d')}/batch.parquet"
+        df.to_parquet(f"s3://{self.s3_bucket}/{s3_key}")
+
+        # Optionally update online store for latest values
+        latest = df.sort_values(event_time_col).groupby(entity_id_col).last()
+        for entity_id, row in latest.iterrows():
+            self.put_features(entity_id, row.to_dict())`}
+          </Code>
+          <Callout type="tip" title="Model serving tradeoffs">
+            <strong>SageMaker real-time endpoints</strong>: Persistent instances, lowest latency, higher cost. <strong>SageMaker serverless</strong>: Cold starts but auto-scaling to zero. <strong>Lambda</strong>: Simple models under 10GB, 15-minute timeout. <strong>Batch transform</strong>: Offline scoring, 50% cost savings. Choose based on latency SLA and cost requirements.
+          </Callout>
+        </Prose>
+      ),
+    },
+    {
+      id: "observability",
+      title: "Observability at Scale",
+      subtitle: "Distributed tracing, metrics, alerting",
+      content: (
+        <Prose>
+          <p>
+            Observability has three pillars: <strong>logs</strong> (what happened), <strong>metrics</strong> (how much/how fast), and <strong>traces</strong> (request flow across services). For distributed systems, <strong>traces</strong> are essential—they show how a single request flows through multiple services, where time is spent, and where failures occur.
+          </p>
+          <p>
+            On AWS, <strong>CloudWatch</strong> provides logs and metrics, <strong>X-Ray</strong> provides distributed tracing, and <strong>CloudWatch Alarms</strong> with <strong>SNS</strong> handle alerting. <strong>Lambda Powertools</strong> integrates all three with minimal code. For complex systems, add <strong>CloudWatch Insights</strong> for log analysis and <strong>CloudWatch ServiceLens</strong> for service maps.
+          </p>
+          <Code title="Comprehensive observability with Lambda Powertools">
+{`from aws_lambda_powertools import Logger, Tracer, Metrics
+from aws_lambda_powertools.metrics import MetricUnit
+from aws_lambda_powertools.utilities.typing import LambdaContext
+import time
+
+logger = Logger(service="portfolio-service")
+tracer = Tracer(service="portfolio-service")
+metrics = Metrics(service="portfolio-service", namespace="PortfolioApp")
+
+@logger.inject_lambda_context(log_event=True)
+@tracer.capture_lambda_handler
+@metrics.log_metrics(capture_cold_start_metric=True)
+def handler(event: dict, context: LambdaContext) -> dict:
+    """Handler with full observability."""
+
+    # Add custom dimensions for filtering
+    metrics.add_dimension(name="Environment", value="prod")
+
+    start_time = time.time()
+
+    try:
+        # Business logic with tracing
+        with tracer.capture_method("validate_request"):
+            portfolio_id = validate_request(event)
+
+        with tracer.capture_method("fetch_portfolio"):
+            portfolio = fetch_portfolio(portfolio_id)
+
+        with tracer.capture_method("calculate_metrics"):
+            result = calculate_portfolio_metrics(portfolio)
+
+        # Record success metrics
+        latency = (time.time() - start_time) * 1000
+        metrics.add_metric(name="RequestLatency", unit=MetricUnit.Milliseconds, value=latency)
+        metrics.add_metric(name="SuccessCount", unit=MetricUnit.Count, value=1)
+
+        # Structured logging with context
+        logger.info("Portfolio calculated", extra={
+            "portfolio_id": portfolio_id,
+            "position_count": len(portfolio.get("positions", [])),
+            "total_value": result.get("total_value"),
+            "latency_ms": latency
+        })
+
+        return {"statusCode": 200, "body": result}
+
+    except ValidationError as e:
+        metrics.add_metric(name="ValidationErrors", unit=MetricUnit.Count, value=1)
+        logger.warning("Validation failed", extra={"error": str(e)})
+        return {"statusCode": 400, "body": {"error": str(e)}}
+
+    except Exception as e:
+        metrics.add_metric(name="ErrorCount", unit=MetricUnit.Count, value=1)
+        logger.exception("Unexpected error")  # Includes stack trace
+        tracer.put_annotation("error", str(e))
+        raise
+
+# CloudWatch Alarm (in CDK):
+# alarm = cloudwatch.Alarm(
+#     metric=metrics.metric("ErrorCount"),
+#     threshold=10,
+#     evaluation_periods=1,
+#     alarm_actions=[sns_topic]
+# )`}
+          </Code>
+          <Callout type="insight" title="Key metrics for ML systems">
+            Beyond standard metrics, ML systems need: <strong>prediction latency</strong> (p50, p95, p99), <strong>cache hit rate</strong>, <strong>feature freshness</strong>, <strong>prediction distribution drift</strong>, and <strong>model version</strong>. Alert on latency SLA breaches and prediction drift—these indicate model degradation.
+          </Callout>
+        </Prose>
+      ),
+    },
+    {
+      id: "financial-patterns",
+      title: "Financial System Patterns",
+      subtitle: "Low-latency, compliance, risk management",
+      content: (
+        <Prose>
+          <p>
+            Financial systems have unique requirements: <strong>ultra-low latency</strong> for trading (microseconds to milliseconds), <strong>strong consistency</strong> for positions and balances, <strong>audit trails</strong> for compliance, and <strong>risk controls</strong> that cannot be bypassed. These requirements often conflict with cloud-native patterns—you may need dedicated instances, synchronous calls, and pessimistic locking where serverless and eventual consistency would normally be preferred.
+          </p>
+          <p>
+            For <strong>market data distribution</strong>, use <strong>Kinesis</strong> for ingestion and <strong>ElastiCache (Redis) pub/sub</strong> for fan-out to consumers. For <strong>order management</strong>, use <strong>Aurora PostgreSQL</strong> with synchronous replication for ACID guarantees. For <strong>position calculations</strong>, use <strong>DynamoDB</strong> with conditional writes for atomic updates. For <strong>risk limits</strong>, implement checks both pre-trade (reject violating orders) and post-trade (alert on breaches).
+          </p>
+          <Code title="Position management with atomic updates">
+{`import boto3
+from decimal import Decimal
+from boto3.dynamodb.conditions import Attr
+
+dynamodb = boto3.resource("dynamodb")
+positions_table = dynamodb.Table("positions")
+
+class PositionManager:
+    """Atomic position updates with risk limit checks."""
+
+    def __init__(self, risk_limits: dict):
+        self.risk_limits = risk_limits  # symbol -> max_position
+
+    def update_position(
+        self,
+        portfolio_id: str,
+        symbol: str,
+        quantity_delta: Decimal,
+        price: Decimal
+    ) -> dict:
+        """Atomically update position with risk limit check."""
+        max_position = Decimal(str(self.risk_limits.get(symbol, float("inf"))))
+
+        try:
+            # Atomic update with condition check
+            response = positions_table.update_item(
+                Key={
+                    "portfolio_id": portfolio_id,
+                    "symbol": symbol
+                },
+                UpdateExpression="""
+                    SET quantity = if_not_exists(quantity, :zero) + :delta,
+                        last_price = :price,
+                        updated_at = :now
+                """,
+                ConditionExpression=(
+                    Attr("quantity").not_exists() |
+                    (Attr("quantity") + Attr(":delta")).between(-max_position, max_position)
+                ),
+                ExpressionAttributeValues={
+                    ":delta": quantity_delta,
+                    ":price": price,
+                    ":now": datetime.utcnow().isoformat(),
+                    ":zero": Decimal("0"),
+                },
+                ReturnValues="ALL_NEW"
+            )
+
+            return {
+                "status": "success",
+                "position": response["Attributes"]
+            }
+
+        except dynamodb.meta.client.exceptions.ConditionalCheckFailedException:
+            # Position limit would be breached
+            return {
+                "status": "rejected",
+                "reason": f"Would exceed position limit of {max_position} for {symbol}"
+            }
+
+    def get_portfolio_risk(self, portfolio_id: str) -> dict:
+        """Calculate portfolio-level risk metrics."""
+        response = positions_table.query(
+            KeyConditionExpression=Key("portfolio_id").eq(portfolio_id)
+        )
+
+        positions = response["Items"]
+        total_exposure = sum(
+            abs(p["quantity"] * p["last_price"]) for p in positions
+        )
+
+        return {
+            "total_exposure": total_exposure,
+            "position_count": len(positions),
+            "largest_position": max(positions, key=lambda p: abs(p["quantity"] * p["last_price"]))
+        }`}
+          </Code>
+          <Callout type="warning" title="Compliance requirements">
+            Financial systems must maintain <strong>complete audit trails</strong>. Use DynamoDB Streams or change data capture to record all state changes to an immutable audit log (S3 with versioning, or a separate audit table). Include: who made the change, when, what changed, and why (order ID, approval ID, etc.).
+          </Callout>
+        </Prose>
       ),
     },
   ],
 
   operations: [
     { name: "Cache lookup (Redis)", time: "O(1)", space: "O(n)", note: "Sub-millisecond" },
-    { name: "Load balancer routing", time: "O(1)", space: "O(k)", note: "k=server count" },
-    { name: "Message queue enqueue", time: "O(1)", space: "O(n)", note: "Amortized" },
-    { name: "Database index lookup", time: "O(log n)", space: "O(n)", note: "B-tree index" },
-    { name: "Consistent hashing", time: "O(log k)", space: "O(k)", note: "k=nodes" },
-    { name: "Rate limit check", time: "O(1)", space: "O(1)", note: "Token bucket" },
+    { name: "DynamoDB get item", time: "O(1)", space: "O(1)", note: "Single-digit ms" },
+    { name: "DynamoDB query", time: "O(log n + k)", space: "O(k)", note: "k = results" },
+    { name: "Load balancer routing", time: "O(1)", space: "O(k)", note: "k = servers" },
+    { name: "Kinesis put record", time: "O(1)", space: "O(n)", note: "~5ms" },
+    { name: "Lambda cold start", time: "O(1)", space: "O(1)", note: "100ms-1s" },
+    { name: "S3 get object", time: "O(1)", space: "O(n)", note: "~50-100ms" },
+    { name: "Consistent hashing", time: "O(log k)", space: "O(k)", note: "k = nodes" },
   ],
 
   patterns: [
     {
       name: "Circuit Breaker",
-      description: "Fail fast when downstream is unhealthy",
-      code: `import time
-from enum import Enum
+      description: "Fail fast when downstream services are unhealthy to prevent cascade failures.",
+      explanation: `The **circuit breaker** pattern prevents cascade failures in distributed systems. When a downstream service starts failing, the circuit breaker "opens" and immediately rejects requests instead of waiting for timeouts. After a recovery period, it enters "half-open" state to test if the service recovered.
 
-class State(Enum):
+In financial systems, circuit breakers are critical for external API calls (market data providers, execution venues). Without them, a slow or failing external service can exhaust connection pools and bring down your entire system. Implement circuit breakers around all external calls with configurable thresholds.
+
+AWS provides managed circuit breakers in **App Mesh** and **API Gateway**. For Lambda, implement in code using libraries like **tenacity** or custom state in DynamoDB/ElastiCache. Track circuit state in metrics for operational visibility.`,
+      triggers: "external API calls, downstream services, cascade failures, resilience, fault tolerance",
+      code: `from enum import Enum
+from dataclasses import dataclass
+import time
+import threading
+
+class CircuitState(Enum):
     CLOSED = "closed"      # Normal operation
     OPEN = "open"          # Failing, reject requests
     HALF_OPEN = "half_open" # Testing recovery
 
+@dataclass
 class CircuitBreaker:
-    def __init__(self, failure_threshold: int = 5, recovery_timeout: int = 30):
-        self.failure_threshold = failure_threshold
-        self.recovery_timeout = recovery_timeout
+    """Circuit breaker with thread-safe state management."""
+
+    failure_threshold: int = 5
+    recovery_timeout: float = 30.0
+    half_open_max_calls: int = 3
+
+    def __post_init__(self):
         self.failures = 0
-        self.state = State.CLOSED
-        self.last_failure_time = 0
+        self.successes_in_half_open = 0
+        self.state = CircuitState.CLOSED
+        self.last_failure_time = 0.0
+        self.lock = threading.Lock()
 
     def call(self, func, *args, **kwargs):
-        if self.state == State.OPEN:
-            if time.time() - self.last_failure_time > self.recovery_timeout:
-                self.state = State.HALF_OPEN
-            else:
-                raise Exception("Circuit is OPEN")
+        with self.lock:
+            if self.state == CircuitState.OPEN:
+                if time.time() - self.last_failure_time > self.recovery_timeout:
+                    self.state = CircuitState.HALF_OPEN
+                    self.successes_in_half_open = 0
+                else:
+                    raise CircuitOpenError("Circuit breaker is OPEN")
 
         try:
             result = func(*args, **kwargs)
@@ -451,123 +806,470 @@ class CircuitBreaker:
             raise
 
     def _on_success(self):
-        self.failures = 0
-        self.state = State.CLOSED
+        with self.lock:
+            if self.state == CircuitState.HALF_OPEN:
+                self.successes_in_half_open += 1
+                if self.successes_in_half_open >= self.half_open_max_calls:
+                    self.state = CircuitState.CLOSED
+                    self.failures = 0
+            else:
+                self.failures = 0
 
     def _on_failure(self):
-        self.failures += 1
-        self.last_failure_time = time.time()
-        if self.failures >= self.failure_threshold:
-            self.state = State.OPEN`,
+        with self.lock:
+            self.failures += 1
+            self.last_failure_time = time.time()
+            if self.failures >= self.failure_threshold:
+                self.state = CircuitState.OPEN
+
+# Usage
+market_data_circuit = CircuitBreaker(failure_threshold=3, recovery_timeout=60)
+
+def get_market_data(symbol: str):
+    return market_data_circuit.call(external_api.get_price, symbol)`,
     },
     {
-      name: "Retry with Backoff",
-      description: "Retry failed operations with exponential delay",
+      name: "Retry with Exponential Backoff",
+      description: "Retry failed operations with increasing delays to handle transient failures.",
+      explanation: `**Exponential backoff** handles transient failures by retrying with increasing delays. Each retry waits longer: 1s, 2s, 4s, 8s, etc. Add **jitter** (random variation) to prevent thundering herd problems when many clients retry simultaneously.
+
+Critical for AWS API calls which have rate limits and transient errors. DynamoDB, S3, and Bedrock all recommend exponential backoff in their SDKs. The AWS SDK includes automatic retries, but you may need custom retry logic for business-specific conditions.
+
+Key considerations: set a **maximum retry count** (typically 3-5), set a **maximum delay** cap (e.g., 60 seconds), and make operations **idempotent** since retries may execute multiple times. For financial transactions, use idempotency keys to prevent duplicate processing.`,
+      triggers: "transient failures, rate limiting, API calls, resilience, thundering herd",
       code: `import time
 import random
 from functools import wraps
+from typing import Callable, Type
 
 def retry_with_backoff(
     max_retries: int = 3,
     base_delay: float = 1.0,
     max_delay: float = 60.0,
     exponential_base: float = 2.0,
-    jitter: bool = True
+    jitter: bool = True,
+    retryable_exceptions: tuple[Type[Exception], ...] = (Exception,)
 ):
-    def decorator(func):
+    """Decorator for retry with exponential backoff and jitter."""
+    def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
-            retries = 0
-            while True:
+            last_exception = None
+
+            for attempt in range(max_retries + 1):
                 try:
                     return func(*args, **kwargs)
-                except Exception as e:
-                    retries += 1
-                    if retries > max_retries:
+                except retryable_exceptions as e:
+                    last_exception = e
+
+                    if attempt == max_retries:
                         raise
 
+                    # Calculate delay with exponential backoff
                     delay = min(
-                        base_delay * (exponential_base ** (retries - 1)),
+                        base_delay * (exponential_base ** attempt),
                         max_delay
                     )
+
+                    # Add jitter to prevent thundering herd
                     if jitter:
                         delay *= (0.5 + random.random())
 
-                    print(f"Retry {retries}/{max_retries} after {delay:.2f}s")
+                    print(f"Retry {attempt + 1}/{max_retries} after {delay:.2f}s: {e}")
                     time.sleep(delay)
+
+            raise last_exception
         return wrapper
     return decorator
 
-@retry_with_backoff(max_retries=3)
-def call_api(url: str):
-    response = requests.get(url)
-    response.raise_for_status()
-    return response.json()`,
+# Usage with idempotency for financial operations
+@retry_with_backoff(
+    max_retries=3,
+    retryable_exceptions=(ConnectionError, TimeoutError)
+)
+def submit_order(order: dict, idempotency_key: str):
+    """Submit order with idempotency key for safe retries."""
+    return trading_api.submit(
+        order=order,
+        headers={"Idempotency-Key": idempotency_key}
+    )`,
+    },
+    {
+      name: "DynamoDB Single-Table Design",
+      description: "Store multiple entity types in one table for efficient access patterns.",
+      explanation: `**Single-table design** stores multiple entity types (users, orders, products) in one DynamoDB table using composite keys. This enables fetching related entities in a single query, reducing latency and cost. The tradeoff is complexity—you need to carefully design key schemas and use GSIs for alternative access patterns.
+
+The pattern uses **overloaded keys**: partition key might be "USER#123" or "ORDER#456", sort key might be "METADATA" or "ITEM#789". Query by partition key to get all related items. For example, PK="PORTFOLIO#123" returns the portfolio metadata and all positions in one query.
+
+For financial systems, single-table design is excellent for portfolios (portfolio + positions + trades), orders (order + fills + amendments), and client data (client + accounts + preferences). Use GSIs sparingly—they add cost and have eventual consistency.`,
+      triggers: "DynamoDB, NoSQL, data modeling, access patterns, query optimization",
+      code: `import boto3
+from boto3.dynamodb.conditions import Key
+from decimal import Decimal
+from typing import TypedDict
+
+dynamodb = boto3.resource("dynamodb")
+table = dynamodb.Table("financial-data")
+
+# Key schema examples:
+# PK: PORTFOLIO#<id>, SK: METADATA | POSITION#<symbol> | TRADE#<timestamp>
+# PK: CLIENT#<id>, SK: METADATA | ACCOUNT#<id> | PREFERENCE#<key>
+
+class SingleTableAccess:
+    """Access patterns for single-table design."""
+
+    @staticmethod
+    def get_portfolio_with_positions(portfolio_id: str) -> dict:
+        """Single query: portfolio + all positions."""
+        response = table.query(
+            KeyConditionExpression=Key("PK").eq(f"PORTFOLIO#{portfolio_id}")
+        )
+
+        result = {"portfolio": None, "positions": []}
+        for item in response["Items"]:
+            if item["SK"] == "METADATA":
+                result["portfolio"] = item
+            elif item["SK"].startswith("POSITION#"):
+                result["positions"].append(item)
+
+        return result
+
+    @staticmethod
+    def get_trades_for_symbol(symbol: str, limit: int = 100) -> list:
+        """Query trades by symbol using GSI."""
+        response = table.query(
+            IndexName="GSI1",
+            KeyConditionExpression=Key("GSI1PK").eq(f"SYMBOL#{symbol}"),
+            ScanIndexForward=False,  # Most recent first
+            Limit=limit
+        )
+        return response["Items"]
+
+    @staticmethod
+    def put_position(portfolio_id: str, symbol: str, quantity: Decimal, price: Decimal):
+        """Upsert position with conditional write."""
+        table.put_item(
+            Item={
+                "PK": f"PORTFOLIO#{portfolio_id}",
+                "SK": f"POSITION#{symbol}",
+                "symbol": symbol,
+                "quantity": quantity,
+                "avg_price": price,
+                "market_value": quantity * price,
+                "GSI1PK": f"SYMBOL#{symbol}",  # For querying by symbol
+                "GSI1SK": portfolio_id,
+                "entity_type": "POSITION"
+            }
+        )
+
+    @staticmethod
+    def record_trade(portfolio_id: str, trade: dict):
+        """Record trade with TTL for historical cleanup."""
+        import time
+        timestamp = trade["timestamp"]
+
+        table.put_item(
+            Item={
+                "PK": f"PORTFOLIO#{portfolio_id}",
+                "SK": f"TRADE#{timestamp}",
+                "symbol": trade["symbol"],
+                "side": trade["side"],
+                "quantity": Decimal(str(trade["quantity"])),
+                "price": Decimal(str(trade["price"])),
+                "GSI1PK": f"SYMBOL#{trade['symbol']}",
+                "GSI1SK": timestamp,
+                "entity_type": "TRADE",
+                "ttl": int(time.time()) + (365 * 24 * 3600)  # 1 year TTL
+            }
+        )`,
+    },
+    {
+      name: "Step Functions Workflow",
+      description: "Orchestrate complex multi-step workflows with built-in error handling.",
+      explanation: `**AWS Step Functions** orchestrates complex workflows as state machines. Each step can invoke Lambda, call AWS services directly, or wait for human approval. Built-in error handling, retries, and timeouts make it ideal for long-running processes that need durability.
+
+For ML systems, Step Functions orchestrates training pipelines: data validation → feature engineering → model training → evaluation → deployment. For financial systems, it handles trade workflows: validation → risk check → approval → execution → settlement. The workflow state persists automatically—if a step fails, you can resume from where it left off.
+
+Use **Express workflows** for high-volume, short-duration tasks (under 5 minutes). Use **Standard workflows** for long-running processes (up to 1 year). Integrate with EventBridge for event-driven triggering.`,
+      triggers: "workflows, orchestration, long-running processes, state machines, error handling",
+      code: `import boto3
+import json
+from datetime import datetime
+
+sfn = boto3.client("stepfunctions")
+
+# Step Functions state machine definition (JSON in CDK/CloudFormation)
+STATE_MACHINE_DEFINITION = {
+    "StartAt": "ValidateOrder",
+    "States": {
+        "ValidateOrder": {
+            "Type": "Task",
+            "Resource": "arn:aws:lambda:...:validate-order",
+            "Next": "CheckRiskLimits",
+            "Retry": [{"ErrorEquals": ["States.TaskFailed"], "MaxAttempts": 2}],
+            "Catch": [{"ErrorEquals": ["ValidationError"], "Next": "RejectOrder"}]
+        },
+        "CheckRiskLimits": {
+            "Type": "Task",
+            "Resource": "arn:aws:lambda:...:check-risk",
+            "Next": "RequiresApproval"
+        },
+        "RequiresApproval": {
+            "Type": "Choice",
+            "Choices": [
+                {
+                    "Variable": "$.requires_approval",
+                    "BooleanEquals": True,
+                    "Next": "WaitForApproval"
+                }
+            ],
+            "Default": "ExecuteOrder"
+        },
+        "WaitForApproval": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke.waitForTaskToken",
+            "Parameters": {
+                "FunctionName": "request-approval",
+                "Payload": {"order.$": "$", "token.$": "$$.Task.Token"}
+            },
+            "TimeoutSeconds": 86400,  # 24 hour approval timeout
+            "Next": "ExecuteOrder"
+        },
+        "ExecuteOrder": {
+            "Type": "Task",
+            "Resource": "arn:aws:lambda:...:execute-order",
+            "End": True
+        },
+        "RejectOrder": {
+            "Type": "Task",
+            "Resource": "arn:aws:lambda:...:reject-order",
+            "End": True
+        }
+    }
+}
+
+def start_order_workflow(order: dict) -> str:
+    """Start order workflow execution."""
+    response = sfn.start_execution(
+        stateMachineArn="arn:aws:states:...:order-workflow",
+        name=f"order-{order['id']}-{datetime.now().strftime('%Y%m%d%H%M%S')}",
+        input=json.dumps(order)
+    )
+    return response["executionArn"]
+
+def approve_order(task_token: str, approved: bool, approver: str):
+    """Complete approval task from external system (e.g., Slack button)."""
+    if approved:
+        sfn.send_task_success(
+            taskToken=task_token,
+            output=json.dumps({"approved": True, "approver": approver})
+        )
+    else:
+        sfn.send_task_failure(
+            taskToken=task_token,
+            error="OrderRejected",
+            cause=f"Rejected by {approver}"
+        )`,
+    },
+    {
+      name: "Kinesis Stream Processing",
+      description: "Process real-time data streams with exactly-once semantics.",
+      explanation: `**Kinesis Data Streams** ingests and processes real-time data at scale. Data is organized into **shards**—each shard handles up to 1MB/s write and 2MB/s read. Lambda can consume Kinesis streams with automatic shard management and checkpointing.
+
+For market data, a typical pattern: market data providers → Kinesis → Lambda (enrichment/filtering) → DynamoDB (current state) + S3 (historical). Use **enhanced fan-out** for dedicated throughput per consumer. Use **Kinesis Data Analytics** (Flink) for complex stream processing like windowed aggregations.
+
+Key considerations: **ordering is per-shard** (use partition key to route related events to same shard), **duplicates are possible** (design idempotent consumers), and **retention is 24 hours default** (extend to 7 days or 365 days for replay capability).`,
+      triggers: "streaming, real-time, market data, event processing, Kinesis",
+      code: `import boto3
+import json
+import base64
+from aws_lambda_powertools import Logger, Tracer
+from decimal import Decimal
+
+logger = Logger()
+tracer = Tracer()
+kinesis = boto3.client("kinesis")
+dynamodb = boto3.resource("dynamodb")
+prices_table = dynamodb.Table("current-prices")
+
+@tracer.capture_lambda_handler
+def handler(event: dict, context) -> dict:
+    """Process market data stream from Kinesis."""
+    batch_item_failures = []
+
+    for record in event["Records"]:
+        try:
+            # Decode and parse record
+            payload = base64.b64decode(record["kinesis"]["data"])
+            data = json.loads(payload)
+
+            # Process market data
+            process_price_update(data)
+
+        except Exception as e:
+            logger.error(f"Failed to process record: {e}")
+            batch_item_failures.append({
+                "itemIdentifier": record["kinesis"]["sequenceNumber"]
+            })
+
+    # Return failures for automatic retry
+    return {"batchItemFailures": batch_item_failures}
+
+@tracer.capture_method
+def process_price_update(data: dict):
+    """Update current price in DynamoDB with conditional write."""
+    symbol = data["symbol"]
+    price = Decimal(str(data["price"]))
+    timestamp = data["timestamp"]
+
+    # Only update if newer than existing
+    prices_table.update_item(
+        Key={"symbol": symbol},
+        UpdateExpression="SET price = :price, updated_at = :ts, bid = :bid, ask = :ask",
+        ConditionExpression="attribute_not_exists(updated_at) OR updated_at < :ts",
+        ExpressionAttributeValues={
+            ":price": price,
+            ":ts": timestamp,
+            ":bid": Decimal(str(data.get("bid", price))),
+            ":ask": Decimal(str(data.get("ask", price)))
+        }
+    )
+
+def publish_to_stream(stream_name: str, records: list[dict]):
+    """Publish batch of records to Kinesis stream."""
+    kinesis.put_records(
+        StreamName=stream_name,
+        Records=[
+            {
+                "Data": json.dumps(record).encode(),
+                "PartitionKey": record["symbol"]  # Route by symbol for ordering
+            }
+            for record in records
+        ]
+    )`,
     },
     {
       name: "Consistent Hashing",
-      description: "Distribute keys across nodes with minimal redistribution",
+      description: "Distribute keys across nodes with minimal redistribution when nodes change.",
+      explanation: `**Consistent hashing** distributes data across nodes such that adding or removing a node only redistributes K/N keys (where K is total keys and N is nodes), rather than rehashing everything. This is essential for distributed caches and databases.
+
+The algorithm places nodes on a hash ring. To find which node stores a key, hash the key and walk clockwise to the nearest node. **Virtual nodes** (multiple positions per physical node) improve distribution uniformity. When a node fails, only its keys move to the next node on the ring.
+
+Used internally by DynamoDB, ElastiCache Redis Cluster, and Cassandra. You rarely implement it yourself, but understanding it helps debug hot partition issues and capacity planning.`,
+      triggers: "distributed systems, data distribution, partitioning, hash ring, load balancing",
       code: `import hashlib
 from bisect import bisect_left
+from typing import Optional
 
 class ConsistentHash:
-    def __init__(self, nodes: list[str], replicas: int = 100):
-        self.replicas = replicas
+    """Consistent hashing with virtual nodes for uniform distribution."""
+
+    def __init__(self, nodes: list[str] = None, replicas: int = 100):
+        self.replicas = replicas  # Virtual nodes per physical node
         self.ring: list[int] = []
         self.node_map: dict[int, str] = {}
 
-        for node in nodes:
+        for node in (nodes or []):
             self.add_node(node)
 
     def _hash(self, key: str) -> int:
+        """Consistent hash function."""
         return int(hashlib.md5(key.encode()).hexdigest(), 16)
 
     def add_node(self, node: str):
+        """Add node with virtual replicas."""
         for i in range(self.replicas):
-            virtual_key = f"{node}:{i}"
+            virtual_key = f"{node}:replica:{i}"
             hash_val = self._hash(virtual_key)
             self.ring.append(hash_val)
             self.node_map[hash_val] = node
         self.ring.sort()
 
     def remove_node(self, node: str):
+        """Remove node and all its virtual replicas."""
         for i in range(self.replicas):
-            hash_val = self._hash(f"{node}:{i}")
+            hash_val = self._hash(f"{node}:replica:{i}")
             self.ring.remove(hash_val)
             del self.node_map[hash_val]
 
-    def get_node(self, key: str) -> str:
+    def get_node(self, key: str) -> Optional[str]:
+        """Find the node responsible for a key."""
         if not self.ring:
             return None
+
         hash_val = self._hash(key)
+        # Find first node clockwise from hash position
         idx = bisect_left(self.ring, hash_val) % len(self.ring)
-        return self.node_map[self.ring[idx]]`,
+        return self.node_map[self.ring[idx]]
+
+    def get_nodes(self, key: str, count: int = 3) -> list[str]:
+        """Get multiple nodes for replication."""
+        if not self.ring:
+            return []
+
+        hash_val = self._hash(key)
+        idx = bisect_left(self.ring, hash_val)
+
+        nodes = []
+        seen = set()
+        for i in range(len(self.ring)):
+            node = self.node_map[self.ring[(idx + i) % len(self.ring)]]
+            if node not in seen:
+                nodes.append(node)
+                seen.add(node)
+                if len(nodes) >= count:
+                    break
+
+        return nodes`,
     },
     {
-      name: "Distributed Lock",
-      description: "Coordinate access across processes",
+      name: "Distributed Lock with Redis",
+      description: "Coordinate access to shared resources across processes.",
+      explanation: `**Distributed locks** prevent concurrent access to shared resources across multiple processes or servers. Redis provides atomic operations (SET NX with TTL) for simple locking. For stronger guarantees, use **Redlock** (locks across multiple Redis instances) or **DynamoDB conditional writes**.
+
+Critical for financial systems: preventing double-spending, ensuring only one process updates a position, coordinating rebalancing across accounts. Always use TTLs to prevent deadlocks if the lock holder crashes. Use unique tokens to ensure only the lock owner can release.
+
+For AWS serverless, consider **DynamoDB-based locks** (work without ElastiCache) or **Step Functions** (implicit coordination through workflow state). For high-frequency trading, dedicated Redis clusters with minimal network latency.`,
+      triggers: "coordination, mutual exclusion, concurrency, Redis, leader election",
       code: `import redis
 import uuid
 import time
+from contextlib import contextmanager
 
 class DistributedLock:
-    def __init__(self, redis_client, lock_name: str, ttl: int = 10):
+    """Distributed lock using Redis with automatic release."""
+
+    def __init__(self, redis_client: redis.Redis, lock_name: str, ttl: int = 10):
         self.redis = redis_client
-        self.lock_name = f"lock:{lock_name}"
+        self.lock_key = f"lock:{lock_name}"
         self.ttl = ttl
         self.token = str(uuid.uuid4())
+        self.acquired = False
 
-    def acquire(self, timeout: float = 5.0) -> bool:
+    def acquire(self, blocking: bool = True, timeout: float = 5.0) -> bool:
+        """Acquire the lock, optionally blocking until available."""
         start = time.time()
-        while time.time() - start < timeout:
-            # SET NX with TTL (atomic)
-            if self.redis.set(self.lock_name, self.token, nx=True, ex=self.ttl):
-                return True
-            time.sleep(0.1)
-        return False
 
-    def release(self):
-        # Only release if we own the lock (Lua script for atomicity)
+        while True:
+            # SET NX with TTL (atomic)
+            if self.redis.set(self.lock_key, self.token, nx=True, ex=self.ttl):
+                self.acquired = True
+                return True
+
+            if not blocking:
+                return False
+
+            if time.time() - start > timeout:
+                return False
+
+            time.sleep(0.05)  # Small delay before retry
+
+    def release(self) -> bool:
+        """Release lock only if we own it (Lua script for atomicity)."""
+        if not self.acquired:
+            return False
+
+        # Lua script ensures atomic check-and-delete
         script = """
         if redis.call("get", KEYS[1]) == ARGV[1] then
             return redis.call("del", KEYS[1])
@@ -575,125 +1277,235 @@ class DistributedLock:
             return 0
         end
         """
-        self.redis.eval(script, 1, self.lock_name, self.token)
+        result = self.redis.eval(script, 1, self.lock_key, self.token)
+        self.acquired = False
+        return result == 1
+
+    def extend(self, additional_ttl: int) -> bool:
+        """Extend lock TTL if we still own it."""
+        script = """
+        if redis.call("get", KEYS[1]) == ARGV[1] then
+            return redis.call("expire", KEYS[1], ARGV[2])
+        else
+            return 0
+        end
+        """
+        return self.redis.eval(script, 1, self.lock_key, self.token, additional_ttl) == 1
 
     def __enter__(self):
         if not self.acquire():
-            raise Exception("Failed to acquire lock")
+            raise Exception(f"Failed to acquire lock: {self.lock_key}")
         return self
 
     def __exit__(self, *args):
-        self.release()`,
+        self.release()
+
+# Usage
+redis_client = redis.Redis(host="elasticache-endpoint", port=6379)
+
+def rebalance_portfolio(portfolio_id: str):
+    """Rebalance with distributed lock to prevent concurrent updates."""
+    lock = DistributedLock(redis_client, f"rebalance:{portfolio_id}", ttl=300)
+
+    with lock:
+        portfolio = load_portfolio(portfolio_id)
+        trades = calculate_rebalance_trades(portfolio)
+        execute_trades(trades)`,
     },
     {
-      name: "API Gateway Pattern",
-      description: "Single entry point with routing and auth",
-      code: `from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import JSONResponse
-import httpx
+      name: "API Gateway with Rate Limiting",
+      description: "Single entry point with authentication, rate limiting, and routing.",
+      explanation: `**API Gateway** provides a single entry point for all API requests with cross-cutting concerns: authentication, rate limiting, request validation, and routing. AWS API Gateway integrates with Lambda authorizers for custom auth, usage plans for rate limiting, and VPC links for private backends.
+
+For ML inference APIs, API Gateway handles: API key authentication, per-client rate limiting (prevent abuse), request/response transformation, and caching of repeated predictions. Use **usage plans** to set different quotas for different client tiers. Use **WAF** integration for DDoS protection.
+
+For financial APIs with strict SLAs, consider **Network Load Balancer** for lower latency (bypasses API Gateway overhead) or **API Gateway with edge-optimized endpoints** for global distribution.`,
+      triggers: "API design, authentication, rate limiting, routing, security",
+      code: `from fastapi import FastAPI, Request, HTTPException, Depends
+from fastapi.security import APIKeyHeader
+import time
+from collections import defaultdict
+import threading
 
 app = FastAPI()
+api_key_header = APIKeyHeader(name="X-API-Key")
 
-SERVICES = {
-    "users": "http://user-service:8000",
-    "orders": "http://order-service:8000",
-    "llm": "http://llm-service:8000",
+# In-memory rate limiting (use Redis in production)
+class RateLimiter:
+    def __init__(self, requests_per_minute: int = 60):
+        self.rpm = requests_per_minute
+        self.requests = defaultdict(list)
+        self.lock = threading.Lock()
+
+    def is_allowed(self, client_id: str) -> bool:
+        now = time.time()
+        window_start = now - 60
+
+        with self.lock:
+            # Remove old requests
+            self.requests[client_id] = [
+                t for t in self.requests[client_id] if t > window_start
+            ]
+
+            if len(self.requests[client_id]) >= self.rpm:
+                return False
+
+            self.requests[client_id].append(now)
+            return True
+
+rate_limiter = RateLimiter(requests_per_minute=100)
+
+# API key validation
+VALID_API_KEYS = {
+    "key-123": {"client": "client-a", "tier": "premium"},
+    "key-456": {"client": "client-b", "tier": "standard"},
 }
 
-rate_limiters = {}  # Per-client rate limiters
+async def validate_api_key(api_key: str = Depends(api_key_header)) -> dict:
+    if api_key not in VALID_API_KEYS:
+        raise HTTPException(status_code=401, detail="Invalid API key")
+    return VALID_API_KEYS[api_key]
 
-@app.middleware("http")
-async def gateway_middleware(request: Request, call_next):
-    # Authentication
-    token = request.headers.get("Authorization")
-    if not token:
-        return JSONResponse({"error": "Unauthorized"}, status_code=401)
-
-    # Rate limiting
-    client_id = extract_client_id(token)
-    if not rate_limiters.get(client_id, TokenBucket(10, 100)).consume():
-        return JSONResponse({"error": "Rate limited"}, status_code=429)
-
-    # Route to service
-    path_parts = request.url.path.split("/")
-    if len(path_parts) < 2:
-        return JSONResponse({"error": "Invalid path"}, status_code=400)
-
-    service = path_parts[1]
-    if service not in SERVICES:
-        return JSONResponse({"error": "Service not found"}, status_code=404)
-
-    # Forward request
-    async with httpx.AsyncClient() as client:
-        url = SERVICES[service] + "/".join(path_parts[2:])
-        response = await client.request(
-            method=request.method,
-            url=url,
-            headers=dict(request.headers),
-            content=await request.body()
+async def check_rate_limit(request: Request, client: dict = Depends(validate_api_key)):
+    if not rate_limiter.is_allowed(client["client"]):
+        raise HTTPException(
+            status_code=429,
+            detail="Rate limit exceeded",
+            headers={"Retry-After": "60"}
         )
-        return JSONResponse(response.json(), status_code=response.status_code)`,
+    return client
+
+@app.post("/predict")
+async def predict(
+    request: dict,
+    client: dict = Depends(check_rate_limit)
+):
+    """ML inference endpoint with auth and rate limiting."""
+    # Route to appropriate model based on client tier
+    if client["tier"] == "premium":
+        result = run_premium_model(request)
+    else:
+        result = run_standard_model(request)
+
+    return {"prediction": result, "client": client["client"]}`,
     },
     {
-      name: "Dead Letter Queue",
-      description: "Handle failed messages gracefully",
+      name: "Dead Letter Queue Pattern",
+      description: "Handle failed messages gracefully without losing data.",
+      explanation: `**Dead letter queues (DLQ)** capture messages that fail processing after multiple retries. Instead of losing failed messages or blocking the queue, they're moved to a separate queue for investigation and reprocessing. Essential for any production message-driven system.
+
+In AWS, SQS has built-in DLQ support: configure maxReceiveCount and a DLQ ARN. After the specified number of receive attempts, messages automatically move to the DLQ. Lambda event source mappings also support DLQ/on-failure destinations.
+
+For financial systems, DLQs are critical for compliance—you must not lose trade messages. Implement monitoring and alerting on DLQ depth. Build tooling to inspect failed messages, fix the issue, and replay them.`,
+      triggers: "error handling, message queues, reliability, SQS, retry",
       code: `import boto3
 import json
 from datetime import datetime
+from aws_lambda_powertools import Logger
 
-class DLQHandler:
-    def __init__(self, main_queue: str, dlq: str, max_retries: int = 3):
-        self.sqs = boto3.client('sqs')
-        self.main_queue = main_queue
-        self.dlq = dlq
-        self.max_retries = max_retries
+logger = Logger()
+sqs = boto3.client("sqs")
 
-    def process_with_retry(self, handler):
-        while True:
-            response = self.sqs.receive_message(
-                QueueUrl=self.main_queue,
-                MaxNumberOfMessages=10,
-                MessageAttributeNames=['All']
-            )
+MAIN_QUEUE_URL = "https://sqs.../main-queue"
+DLQ_URL = "https://sqs.../dlq"
 
-            for msg in response.get('Messages', []):
-                retry_count = int(
-                    msg.get('MessageAttributes', {})
-                    .get('RetryCount', {})
-                    .get('StringValue', '0')
+def process_messages(handler, max_retries: int = 3):
+    """Process SQS messages with DLQ support."""
+    while True:
+        response = sqs.receive_message(
+            QueueUrl=MAIN_QUEUE_URL,
+            MaxNumberOfMessages=10,
+            MessageAttributeNames=["All"],
+            WaitTimeSeconds=20  # Long polling
+        )
+
+        for msg in response.get("Messages", []):
+            # Get retry count from message attributes
+            attrs = msg.get("MessageAttributes", {})
+            retry_count = int(attrs.get("RetryCount", {}).get("StringValue", "0"))
+
+            try:
+                handler(json.loads(msg["Body"]))
+
+                # Success - delete message
+                sqs.delete_message(
+                    QueueUrl=MAIN_QUEUE_URL,
+                    ReceiptHandle=msg["ReceiptHandle"]
                 )
 
-                try:
-                    handler(json.loads(msg['Body']))
-                    self.sqs.delete_message(
-                        QueueUrl=self.main_queue,
-                        ReceiptHandle=msg['ReceiptHandle']
-                    )
-                except Exception as e:
-                    if retry_count >= self.max_retries:
-                        # Move to DLQ
-                        self.sqs.send_message(
-                            QueueUrl=self.dlq,
-                            MessageBody=msg['Body'],
-                            MessageAttributes={
-                                'Error': {'StringValue': str(e), 'DataType': 'String'},
-                                'FailedAt': {'StringValue': datetime.now().isoformat(), 'DataType': 'String'}
-                            }
-                        )
-                    self.sqs.delete_message(
-                        QueueUrl=self.main_queue,
-                        ReceiptHandle=msg['ReceiptHandle']
-                    )`,
+            except Exception as e:
+                logger.error(f"Processing failed: {e}", extra={"retry": retry_count})
+
+                if retry_count >= max_retries:
+                    # Move to DLQ with error context
+                    send_to_dlq(msg, str(e))
+                else:
+                    # Requeue with incremented retry count
+                    requeue_with_retry(msg, retry_count + 1)
+
+                # Delete original message
+                sqs.delete_message(
+                    QueueUrl=MAIN_QUEUE_URL,
+                    ReceiptHandle=msg["ReceiptHandle"]
+                )
+
+def send_to_dlq(original_msg: dict, error: str):
+    """Send failed message to DLQ with error context."""
+    sqs.send_message(
+        QueueUrl=DLQ_URL,
+        MessageBody=original_msg["Body"],
+        MessageAttributes={
+            "OriginalMessageId": {
+                "StringValue": original_msg["MessageId"],
+                "DataType": "String"
+            },
+            "Error": {
+                "StringValue": error[:256],  # Truncate for attribute limit
+                "DataType": "String"
+            },
+            "FailedAt": {
+                "StringValue": datetime.utcnow().isoformat(),
+                "DataType": "String"
+            }
+        }
+    )
+    logger.warning("Message sent to DLQ", extra={"message_id": original_msg["MessageId"]})
+
+def replay_dlq_messages(handler, limit: int = 100):
+    """Replay messages from DLQ back to main queue."""
+    replayed = 0
+
+    while replayed < limit:
+        response = sqs.receive_message(
+            QueueUrl=DLQ_URL,
+            MaxNumberOfMessages=10
+        )
+
+        messages = response.get("Messages", [])
+        if not messages:
+            break
+
+        for msg in messages:
+            # Send back to main queue
+            sqs.send_message(
+                QueueUrl=MAIN_QUEUE_URL,
+                MessageBody=msg["Body"],
+                MessageAttributes={"RetryCount": {"StringValue": "0", "DataType": "String"}}
+            )
+
+            sqs.delete_message(QueueUrl=DLQ_URL, ReceiptHandle=msg["ReceiptHandle"])
+            replayed += 1
+
+    return replayed`,
     },
   ],
 
   problems: [
     {
       id: "rate-limiter",
-      title: "Design a rate limiter",
+      title: "Design a Rate Limiter",
       difficulty: "medium",
-      description:
-        "Implement a rate limiter using the sliding window algorithm that limits requests per minute.",
+      description: "Implement a rate limiter using the sliding window algorithm that limits requests per minute per client.",
       examples: [
         { input: "limiter.is_allowed('user1') x 10", output: "True (first 5), False (next 5)" },
       ],
@@ -709,9 +1521,9 @@ class SlidingWindowRateLimiter:
         # TODO: Check if request is allowed
         pass`,
       hints: [
-        "Track timestamps of recent requests",
-        "Remove timestamps outside the window",
-        "Check if count exceeds limit",
+        "Track timestamps of recent requests per client",
+        "Remove timestamps outside the sliding window",
+        "Check if count exceeds limit before recording",
       ],
       solution: `from collections import deque
 import time
@@ -721,7 +1533,7 @@ class SlidingWindowRateLimiter:
     def __init__(self, max_requests: int, window_seconds: int):
         self.max_requests = max_requests
         self.window_seconds = window_seconds
-        self.requests: dict[str, deque] = {}  # client_id -> timestamps
+        self.requests: dict[str, deque] = {}
         self.lock = Lock()
 
     def is_allowed(self, client_id: str) -> bool:
@@ -729,7 +1541,6 @@ class SlidingWindowRateLimiter:
             now = time.time()
             window_start = now - self.window_seconds
 
-            # Initialize queue for new clients
             if client_id not in self.requests:
                 self.requests[client_id] = deque()
 
@@ -745,28 +1556,14 @@ class SlidingWindowRateLimiter:
 
             # Record request
             queue.append(now)
-            return True
-
-    def get_remaining(self, client_id: str) -> int:
-        with self.lock:
-            if client_id not in self.requests:
-                return self.max_requests
-
-            now = time.time()
-            window_start = now - self.window_seconds
-            queue = self.requests[client_id]
-
-            # Count valid requests
-            valid = sum(1 for t in queue if t >= window_start)
-            return max(0, self.max_requests - valid)`,
+            return True`,
       testCases: [],
     },
     {
       id: "lru-cache",
-      title: "Design an LRU cache",
+      title: "Design an LRU Cache",
       difficulty: "medium",
-      description:
-        "Implement an LRU (Least Recently Used) cache with O(1) get and put operations.",
+      description: "Implement an LRU (Least Recently Used) cache with O(1) get and put operations.",
       examples: [
         { input: "cache.put(1, 1); cache.put(2, 2); cache.get(1)", output: "1" },
       ],
@@ -798,8 +1595,6 @@ class LRUCache:
     def __init__(self, capacity: int):
         self.capacity = capacity
         self.cache: dict[int, Node] = {}
-
-        # Dummy head and tail
         self.head = Node(0, 0)
         self.tail = Node(0, 0)
         self.head.next = self.tail
@@ -818,9 +1613,7 @@ class LRUCache:
     def get(self, key: int) -> int:
         if key not in self.cache:
             return -1
-
         node = self.cache[key]
-        # Move to front (most recently used)
         self._remove(node)
         self._add_to_front(node)
         return node.value
@@ -828,98 +1621,219 @@ class LRUCache:
     def put(self, key: int, value: int):
         if key in self.cache:
             self._remove(self.cache[key])
-
         node = Node(key, value)
         self.cache[key] = node
         self._add_to_front(node)
-
         if len(self.cache) > self.capacity:
-            # Remove LRU (before tail)
             lru = self.tail.prev
             self._remove(lru)
             del self.cache[lru.key]`,
       testCases: [],
     },
     {
-      id: "url-shortener",
-      title: "Design a URL shortener",
-      difficulty: "easy",
-      description:
-        "Design a URL shortening service like bit.ly. Support creating short URLs and redirecting.",
+      id: "feature-store",
+      title: "Design an ML Feature Store",
+      difficulty: "hard",
+      description: "Design a feature store with online (low-latency) and offline (batch) stores, supporting point-in-time correct feature retrieval for training.",
       examples: [
-        { input: "shorten('https://example.com/long/url')", output: "'https://short.url/abc123'" },
+        { input: "store.get_online('user_123', ['age', 'tenure'])", output: "{'age': 25, 'tenure': 12}" },
       ],
-      starterCode: `import string
-import random
+      starterCode: `from datetime import datetime
+import pandas as pd
 
-class URLShortener:
-    def __init__(self):
-        # TODO: Initialize storage
+class FeatureStore:
+    def __init__(self, online_table, offline_bucket: str):
+        # TODO: Initialize stores
         pass
 
-    def shorten(self, long_url: str) -> str:
-        # TODO: Generate short URL
+    def get_online_features(self, entity_id: str, features: list[str]) -> dict:
+        # TODO: Low-latency feature lookup
         pass
 
-    def resolve(self, short_url: str) -> str | None:
-        # TODO: Return original URL
+    def get_historical_features(
+        self, entity_ids: list[str], features: list[str], as_of_time: datetime
+    ) -> pd.DataFrame:
+        # TODO: Point-in-time correct feature retrieval
+        pass
+
+    def ingest_features(self, df: pd.DataFrame, entity_col: str, timestamp_col: str):
+        # TODO: Ingest features to both stores
         pass`,
       hints: [
-        "Generate unique short codes",
-        "Use base62 encoding for compact codes",
-        "Store mapping in database",
+        "Online store: DynamoDB for sub-ms latency",
+        "Offline store: S3/Parquet for batch access",
+        "Point-in-time: filter by event_time <= as_of_time",
+        "Sync: DynamoDB Streams or batch job",
       ],
-      solution: `import string
-import random
+      solution: `import boto3
+from datetime import datetime
+from decimal import Decimal
+import pandas as pd
 
-class URLShortener:
-    def __init__(self):
-        self.url_to_code: dict[str, str] = {}
-        self.code_to_url: dict[str, str] = {}
-        self.base_url = "https://short.url/"
-        self.chars = string.ascii_letters + string.digits
+class FeatureStore:
+    def __init__(self, dynamodb_table, s3_bucket: str):
+        self.online = dynamodb_table
+        self.bucket = s3_bucket
+        self.s3 = boto3.client("s3")
 
-    def _generate_code(self, length: int = 6) -> str:
-        while True:
-            code = ''.join(random.choices(self.chars, k=length))
-            if code not in self.code_to_url:
-                return code
+    def get_online_features(self, entity_id: str, features: list[str]) -> dict:
+        response = self.online.get_item(
+            Key={"entity_id": entity_id},
+            ProjectionExpression=", ".join(features)
+        )
+        return {k: float(v) if isinstance(v, Decimal) else v
+                for k, v in response.get("Item", {}).items()}
 
-    def shorten(self, long_url: str) -> str:
-        # Return existing code if URL already shortened
-        if long_url in self.url_to_code:
-            return self.base_url + self.url_to_code[long_url]
+    def get_historical_features(
+        self, entity_ids: list[str], features: list[str], as_of_time: datetime
+    ) -> pd.DataFrame:
+        # Query Athena for point-in-time features
+        query = f"""
+        WITH ranked AS (
+            SELECT *, ROW_NUMBER() OVER (
+                PARTITION BY entity_id ORDER BY event_time DESC
+            ) as rn
+            FROM feature_store
+            WHERE entity_id IN ({','.join(f"'{e}'" for e in entity_ids)})
+              AND event_time <= '{as_of_time.isoformat()}'
+        )
+        SELECT entity_id, {', '.join(features)}
+        FROM ranked WHERE rn = 1
+        """
+        return self._run_athena_query(query)
 
-        code = self._generate_code()
-        self.url_to_code[long_url] = code
-        self.code_to_url[code] = long_url
+    def ingest_features(self, df: pd.DataFrame, entity_col: str, ts_col: str):
+        # Write to offline store (S3)
+        path = f"s3://{self.bucket}/features/{datetime.utcnow():%Y/%m/%d}/data.parquet"
+        df.to_parquet(path)
 
-        return self.base_url + code
+        # Update online store with latest values
+        latest = df.sort_values(ts_col).groupby(entity_col).last()
+        with self.online.batch_writer() as batch:
+            for entity_id, row in latest.iterrows():
+                batch.put_item(Item={
+                    "entity_id": entity_id,
+                    "event_time": row[ts_col].isoformat(),
+                    **{k: Decimal(str(v)) for k, v in row.items() if k != ts_col}
+                })`,
+      testCases: [],
+    },
+    {
+      id: "portfolio-valuation",
+      title: "Design a Real-time Portfolio Valuation System",
+      difficulty: "hard",
+      description: "Design a system that computes portfolio valuations in real-time as market prices update, serving thousands of portfolios with sub-second latency.",
+      examples: [
+        { input: "get_portfolio_value('portfolio_123')", output: "{'total_value': 1234567.89, 'as_of': '2024-01-15T10:30:00Z'}" },
+      ],
+      starterCode: `class PortfolioValuationSystem:
+    def __init__(self, positions_table, prices_stream):
+        # TODO: Initialize system
+        pass
 
-    def resolve(self, short_url: str) -> str | None:
-        code = short_url.replace(self.base_url, "")
-        return self.code_to_url.get(code)
+    def on_price_update(self, symbol: str, price: float, timestamp: str):
+        # TODO: Handle real-time price update
+        pass
 
-    def get_stats(self, code: str) -> dict:
-        # In production, track click counts, geographic data, etc.
+    def get_portfolio_value(self, portfolio_id: str) -> dict:
+        # TODO: Return current portfolio valuation
+        pass
+
+    def subscribe_to_valuations(self, portfolio_id: str, callback):
+        # TODO: Real-time valuation updates
+        pass`,
+      hints: [
+        "Cache positions and prices in Redis for speed",
+        "Use pub/sub for real-time updates to subscribers",
+        "Pre-compute affected portfolios when price changes",
+        "Use DynamoDB Streams for position changes",
+      ],
+      solution: `import redis
+import json
+from decimal import Decimal
+from datetime import datetime
+
+class PortfolioValuationSystem:
+    def __init__(self, positions_table, redis_client: redis.Redis):
+        self.positions = positions_table
+        self.redis = redis_client
+
+        # Cache: prices, positions, portfolio->symbols mapping
+        # Redis keys:
+        # price:{symbol} -> current price
+        # positions:{portfolio_id} -> {symbol: quantity, ...}
+        # portfolios_by_symbol:{symbol} -> set of portfolio_ids
+
+    def on_price_update(self, symbol: str, price: float, timestamp: str):
+        # Update price cache
+        self.redis.hset(f"price:{symbol}", mapping={
+            "price": price, "timestamp": timestamp
+        })
+
+        # Find affected portfolios
+        portfolio_ids = self.redis.smembers(f"portfolios_by_symbol:{symbol}")
+
+        # Recompute and publish valuations
+        for portfolio_id in portfolio_ids:
+            valuation = self._compute_valuation(portfolio_id.decode())
+
+            # Cache new valuation
+            self.redis.set(
+                f"valuation:{portfolio_id.decode()}",
+                json.dumps(valuation)
+            )
+
+            # Publish to subscribers
+            self.redis.publish(
+                f"valuation_updates:{portfolio_id.decode()}",
+                json.dumps(valuation)
+            )
+
+    def _compute_valuation(self, portfolio_id: str) -> dict:
+        positions = json.loads(
+            self.redis.get(f"positions:{portfolio_id}") or "{}"
+        )
+
+        total = Decimal("0")
+        holdings = []
+
+        for symbol, quantity in positions.items():
+            price_data = self.redis.hgetall(f"price:{symbol}")
+            price = Decimal(price_data.get(b"price", b"0").decode())
+            value = Decimal(str(quantity)) * price
+            total += value
+            holdings.append({"symbol": symbol, "quantity": quantity, "value": float(value)})
+
         return {
-            "code": code,
-            "original_url": self.code_to_url.get(code),
-            "clicks": 0  # Would be tracked in real system
-        }`,
+            "portfolio_id": portfolio_id,
+            "total_value": float(total),
+            "holdings": holdings,
+            "as_of": datetime.utcnow().isoformat()
+        }
+
+    def get_portfolio_value(self, portfolio_id: str) -> dict:
+        cached = self.redis.get(f"valuation:{portfolio_id}")
+        if cached:
+            return json.loads(cached)
+        return self._compute_valuation(portfolio_id)
+
+    def subscribe_to_valuations(self, portfolio_id: str, callback):
+        pubsub = self.redis.pubsub()
+        pubsub.subscribe(f"valuation_updates:{portfolio_id}")
+        for message in pubsub.listen():
+            if message["type"] == "message":
+                callback(json.loads(message["data"]))`,
       testCases: [],
     },
     {
       id: "distributed-counter",
-      title: "Design a distributed counter",
-      difficulty: "hard",
-      description:
-        "Design a distributed counter that can handle high write throughput while maintaining accuracy.",
+      title: "Design a Distributed Counter",
+      difficulty: "medium",
+      description: "Design a distributed counter that can handle high write throughput while maintaining accuracy.",
       examples: [
         { input: "counter.increment(); counter.increment(); counter.get()", output: "2" },
       ],
       starterCode: `import redis
-import random
 
 class DistributedCounter:
     def __init__(self, redis_client, name: str, num_shards: int = 10):
@@ -934,159 +1848,38 @@ class DistributedCounter:
         # TODO: Aggregate all shards
         pass`,
       hints: [
-        "Use sharding to distribute writes",
-        "Aggregate counts across shards",
-        "Trade accuracy for performance with eventual consistency",
+        "Shard the counter across multiple Redis keys",
+        "Write to random shard for load distribution",
+        "Read aggregates all shards",
       ],
       solution: `import redis
 import random
 
 class DistributedCounter:
-    def __init__(self, redis_client, name: str, num_shards: int = 10):
+    def __init__(self, redis_client: redis.Redis, name: str, num_shards: int = 10):
         self.redis = redis_client
         self.name = name
         self.num_shards = num_shards
 
-    def _get_shard_key(self, shard_id: int) -> str:
+    def _shard_key(self, shard_id: int) -> str:
         return f"counter:{self.name}:shard:{shard_id}"
 
     def increment(self, amount: int = 1):
-        # Write to random shard for load distribution
         shard_id = random.randint(0, self.num_shards - 1)
-        self.redis.incrby(self._get_shard_key(shard_id), amount)
+        self.redis.incrby(self._shard_key(shard_id), amount)
 
     def get(self) -> int:
-        # Aggregate across all shards
-        total = 0
         pipeline = self.redis.pipeline()
-
         for i in range(self.num_shards):
-            pipeline.get(self._get_shard_key(i))
-
+            pipeline.get(self._shard_key(i))
         results = pipeline.execute()
         return sum(int(r or 0) for r in results)
 
     def reset(self):
         pipeline = self.redis.pipeline()
         for i in range(self.num_shards):
-            pipeline.delete(self._get_shard_key(i))
-        pipeline.execute()
-
-
-# For even higher throughput: local buffering
-class BufferedCounter:
-    def __init__(self, distributed_counter, flush_interval: int = 100):
-        self.counter = distributed_counter
-        self.local_count = 0
-        self.flush_interval = flush_interval
-
-    def increment(self, amount: int = 1):
-        self.local_count += amount
-        if self.local_count >= self.flush_interval:
-            self.counter.increment(self.local_count)
-            self.local_count = 0`,
-      testCases: [],
-    },
-    {
-      id: "job-scheduler",
-      title: "Design a job scheduler",
-      difficulty: "hard",
-      description:
-        "Design a distributed job scheduler that can run tasks at scheduled times with retries and monitoring.",
-      examples: [
-        { input: "scheduler.schedule('job1', task, run_at)", output: "Job scheduled for execution" },
-      ],
-      starterCode: `import heapq
-import threading
-from datetime import datetime
-from typing import Callable
-
-class JobScheduler:
-    def __init__(self, num_workers: int = 4):
-        # TODO: Initialize scheduler
-        pass
-
-    def schedule(self, job_id: str, func: Callable, run_at: datetime, *args):
-        # TODO: Schedule a job
-        pass
-
-    def start(self):
-        # TODO: Start the scheduler loop
-        pass`,
-      hints: [
-        "Use a priority queue ordered by execution time",
-        "Support cron expressions for recurring jobs",
-        "Implement worker pools with health checks",
-      ],
-      solution: `import heapq
-import time
-import threading
-from dataclasses import dataclass, field
-from datetime import datetime
-from typing import Callable
-from concurrent.futures import ThreadPoolExecutor
-
-@dataclass(order=True)
-class Job:
-    run_at: float
-    id: str = field(compare=False)
-    func: Callable = field(compare=False)
-    args: tuple = field(compare=False, default=())
-    max_retries: int = field(compare=False, default=3)
-    retry_count: int = field(compare=False, default=0)
-
-class JobScheduler:
-    def __init__(self, num_workers: int = 4):
-        self.jobs: list[Job] = []
-        self.lock = threading.Lock()
-        self.executor = ThreadPoolExecutor(max_workers=num_workers)
-        self.running = False
-
-    def schedule(self, job_id: str, func: Callable, run_at: datetime, *args):
-        job = Job(
-            run_at=run_at.timestamp(),
-            id=job_id,
-            func=func,
-            args=args
-        )
-        with self.lock:
-            heapq.heappush(self.jobs, job)
-
-    def schedule_recurring(self, job_id: str, func: Callable, interval_seconds: int, *args):
-        def recurring_wrapper():
-            func(*args)
-            # Reschedule
-            next_run = datetime.fromtimestamp(time.time() + interval_seconds)
-            self.schedule(job_id, func, next_run, *args)
-
-        self.schedule(job_id, recurring_wrapper, datetime.now())
-
-    def _run_job(self, job: Job):
-        try:
-            job.func(*job.args)
-            print(f"Job {job.id} completed")
-        except Exception as e:
-            print(f"Job {job.id} failed: {e}")
-            if job.retry_count < job.max_retries:
-                # Retry with exponential backoff
-                job.retry_count += 1
-                job.run_at = time.time() + (2 ** job.retry_count)
-                with self.lock:
-                    heapq.heappush(self.jobs, job)
-
-    def start(self):
-        self.running = True
-        while self.running:
-            with self.lock:
-                if not self.jobs:
-                    time.sleep(0.1)
-                    continue
-
-                if self.jobs[0].run_at <= time.time():
-                    job = heapq.heappop(self.jobs)
-                    self.executor.submit(self._run_job, job)
-                else:
-                    time.sleep(0.1)`,
+            pipeline.delete(self._shard_key(i))
+        pipeline.execute()`,
       testCases: [],
     },
   ],

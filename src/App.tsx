@@ -10,9 +10,11 @@ import { quantFinanceContent } from "./content/quant-finance";
 import { productionMLContent } from "./content/production-ml";
 import { systemDesignContent } from "./content/system-design";
 import { pythonAWSContent } from "./content/python-aws";
+import { liveCodingContent } from "./content/live-coding";
 import type { DataStructure } from "./types";
 
 const topics: DataStructure[] = [
+  liveCodingContent,
   agentsContent,
   quantFinanceContent,
   productionMLContent,

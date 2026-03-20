@@ -561,6 +561,2023 @@ class FeatureStore:
       ),
     },
     {
+      id: "agentic-ai",
+      title: "Agentic AI Architecture",
+      subtitle: "Designing autonomous AI workflows",
+      content: (
+        <Prose>
+          <p>
+            <strong>Agentic AI</strong> systems go beyond simple request-response: they autonomously plan, execute tools, observe results, and iterate until a goal is achieved. The core loop is <strong>Perceive → Plan → Act → Observe</strong>, repeated until completion or failure. This requires fundamentally different architecture than traditional ML inference.
+          </p>
+          <p>
+            The agent runtime manages the loop: it passes context to the LLM, parses tool calls from the response, executes tools, and feeds results back. <strong>Tool orchestration</strong> is critical — tools must be well-documented (the LLM reads descriptions), idempotent (safe to retry), and return structured results. Common tools include database queries, API calls, code execution, and web search.
+          </p>
+          <Code title="Basic agent loop with tool execution">
+{`from dataclasses import dataclass
+from typing import Callable, Any
+import json
+
+@dataclass
+class Tool:
+    name: str
+    description: str
+    parameters: dict  # JSON schema
+    function: Callable
+
+class AgentRuntime:
+    """Core agent runtime with tool orchestration."""
+
+    def __init__(self, model_client, tools: list[Tool], system_prompt: str):
+        self.model = model_client
+        self.tools = {t.name: t for t in tools}
+        self.system_prompt = system_prompt
+        self.max_iterations = 10
+
+    def run(self, user_input: str) -> str:
+        """Execute agent loop until completion."""
+        messages = [
+            {"role": "system", "content": self.system_prompt},
+            {"role": "user", "content": user_input}
+        ]
+
+        for iteration in range(self.max_iterations):
+            # Get model response
+            response = self.model.generate(
+                messages=messages,
+                tools=[self._tool_schema(t) for t in self.tools.values()]
+            )
+
+            # Check if done (no tool calls)
+            if not response.tool_calls:
+                return response.content
+
+            # Execute each tool call
+            tool_results = []
+            for call in response.tool_calls:
+                tool = self.tools.get(call.name)
+                if not tool:
+                    result = {"error": f"Unknown tool: {call.name}"}
+                else:
+                    try:
+                        result = tool.function(**call.arguments)
+                    except Exception as e:
+                        result = {"error": str(e)}
+
+                tool_results.append({
+                    "tool_call_id": call.id,
+                    "result": json.dumps(result)
+                })
+
+            # Add assistant message and tool results
+            messages.append({"role": "assistant", "content": response.content, "tool_calls": response.tool_calls})
+            messages.append({"role": "tool", "tool_results": tool_results})
+
+        return "Max iterations reached"
+
+    def _tool_schema(self, tool: Tool) -> dict:
+        return {
+            "name": tool.name,
+            "description": tool.description,
+            "parameters": tool.parameters
+        }`}
+          </Code>
+          <p>
+            <strong>Memory systems</strong> enable agents to work across sessions and handle long tasks. <strong>Short-term memory</strong> is the conversation context — limited by token windows. <strong>Long-term memory</strong> uses vector stores to retrieve relevant past interactions or knowledge. <strong>Episodic memory</strong> remembers specific sessions and user preferences. AWS AgentCore provides managed memory services for production agents.
+          </p>
+          <Code title="Agent memory architecture">
+{`from typing import Optional
+import numpy as np
+
+class AgentMemory:
+    """Multi-tier memory for agentic systems."""
+
+    def __init__(self, vector_store, session_store):
+        self.vectors = vector_store  # Long-term semantic memory
+        self.sessions = session_store  # Episodic memory (DynamoDB)
+        self.context = []  # Short-term (conversation)
+
+    def add_to_context(self, role: str, content: str):
+        """Add to short-term conversation memory."""
+        self.context.append({"role": role, "content": content})
+
+        # Trim if too long (keep system + recent)
+        if len(self.context) > 50:
+            self.context = self.context[:1] + self.context[-40:]
+
+    def recall_relevant(self, query: str, k: int = 5) -> list[str]:
+        """Retrieve from long-term memory using semantic search."""
+        results = self.vectors.search(query, top_k=k)
+        return [r.content for r in results]
+
+    def save_episode(self, session_id: str, summary: str, outcome: str):
+        """Save session to episodic memory for learning."""
+        self.sessions.put_item(Item={
+            "session_id": session_id,
+            "summary": summary,
+            "outcome": outcome,  # success/failure
+            "timestamp": datetime.utcnow().isoformat()
+        })
+
+    def get_context_with_memory(self, query: str) -> list[dict]:
+        """Build context with relevant long-term memories."""
+        memories = self.recall_relevant(query)
+
+        # Inject memories into context
+        memory_text = "\\n".join(f"- {m}" for m in memories)
+        enhanced_context = self.context.copy()
+
+        if memories:
+            enhanced_context.insert(1, {
+                "role": "system",
+                "content": f"Relevant information from memory:\\n{memory_text}"
+            })
+
+        return enhanced_context`}
+          </Code>
+          <p>
+            <strong>Multi-agent systems</strong> coordinate multiple specialized agents. Patterns include: <strong>swarms</strong> (parallel agents that vote or aggregate), <strong>hierarchies</strong> (manager agent delegates to workers), and <strong>workflows</strong> (sequential handoffs). AWS Strands SDK and frameworks like CrewAI provide multi-agent orchestration.
+          </p>
+
+          <h3 className="text-lg font-semibold mt-8 mb-3" style={{ color: "var(--color-text-primary)" }}>Investment Research Agents</h3>
+          <p>
+            <strong>Investment research agents</strong> follow a structured workflow: receive thesis → gather evidence → analyze data → produce recommendation with citations. The key difference from generic agents is <strong>evidence tracking</strong> — every claim must cite its source for compliance and reproducibility.
+          </p>
+          <Code title="Investment research agent with citation tracking">
+{`from dataclasses import dataclass, field
+from typing import Optional
+from datetime import datetime
+from enum import Enum
+
+@dataclass
+class Citation:
+    source_type: str  # "sec_filing", "earnings_call", "market_data", "news"
+    source_id: str    # e.g., "AAPL-10K-2024", "AAPL-Q4-2024-call"
+    excerpt: str      # Relevant quote
+    timestamp: datetime
+
+@dataclass
+class ResearchFinding:
+    claim: str
+    confidence: float  # 0-1
+    citations: list[Citation]
+    methodology: str   # How was this derived?
+
+@dataclass
+class ResearchReport:
+    thesis: str
+    recommendation: str  # "buy", "sell", "hold", "no_opinion"
+    confidence: float
+    findings: list[ResearchFinding]
+    risks: list[str]
+    data_as_of: datetime
+
+class InvestmentResearchAgent:
+    """Agent for systematic investment research with full citation tracking."""
+
+    def __init__(self, model_client, tools: dict):
+        self.model = model_client
+        self.tools = tools
+        self.citations = []  # Track all sources accessed
+
+    def research(self, thesis: str, symbol: str) -> ResearchReport:
+        """Execute research workflow with evidence gathering."""
+
+        # Step 1: Gather fundamental data
+        financials = self._with_citation(
+            self.tools["sec_filings"].get_latest_10k(symbol),
+            "sec_filing"
+        )
+
+        # Step 2: Analyze recent earnings
+        earnings = self._with_citation(
+            self.tools["earnings"].get_transcript(symbol, quarters=4),
+            "earnings_call"
+        )
+
+        # Step 3: Check market data and technicals
+        market = self._with_citation(
+            self.tools["market_data"].get_fundamentals(symbol),
+            "market_data"
+        )
+
+        # Step 4: Scan news and sentiment
+        news = self._with_citation(
+            self.tools["news"].search(symbol, days=30),
+            "news"
+        )
+
+        # Step 5: Synthesize with LLM
+        analysis = self.model.generate(
+            messages=[
+                {"role": "system", "content": self._research_prompt()},
+                {"role": "user", "content": f"Thesis: {thesis}\\n\\nData:\\n{self._format_data(financials, earnings, market, news)}"}
+            ],
+            response_format=ResearchReport  # Structured output
+        )
+
+        # Attach citations to findings
+        analysis.findings = self._attach_citations(analysis.findings)
+
+        return analysis
+
+    def _with_citation(self, data: dict, source_type: str) -> dict:
+        """Track data source for citation."""
+        citation = Citation(
+            source_type=source_type,
+            source_id=data.get("source_id", "unknown"),
+            excerpt=data.get("summary", "")[:500],
+            timestamp=datetime.utcnow()
+        )
+        self.citations.append(citation)
+        return data
+
+    def _attach_citations(self, findings: list[ResearchFinding]) -> list[ResearchFinding]:
+        """Match findings to their supporting citations."""
+        # In production: use semantic similarity to match claims to sources
+        for finding in findings:
+            finding.citations = [c for c in self.citations
+                                 if c.source_type in finding.methodology]
+        return findings`}
+          </Code>
+
+          <h3 className="text-lg font-semibold mt-8 mb-3" style={{ color: "var(--color-text-primary)" }}>Financial Tool Design</h3>
+          <p>
+            Tools for financial agents require special design: <strong>read-only vs write</strong> separation (queries vs trades), <strong>parameter constraints</strong> (max amounts, allowed symbols), <strong>idempotency</strong> (safe retries), and <strong>approval gates</strong> (high-impact actions require human review).
+          </p>
+          <Code title="Tool design with financial constraints">
+{`from dataclasses import dataclass
+from typing import Callable, Optional
+from functools import wraps
+
+@dataclass
+class ToolConstraints:
+    read_only: bool = True
+    requires_approval: bool = False
+    max_amount: Optional[float] = None
+    allowed_symbols: Optional[list[str]] = None  # None = all allowed
+    rate_limit_per_minute: int = 60
+    cache_ttl_seconds: int = 0  # 0 = no caching
+
+def financial_tool(constraints: ToolConstraints):
+    """Decorator for financial agent tools with safety constraints."""
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # Validate constraints before execution
+            if constraints.allowed_symbols:
+                symbol = kwargs.get("symbol") or (args[0] if args else None)
+                if symbol and symbol not in constraints.allowed_symbols:
+                    raise ValueError(f"Symbol {symbol} not in allowed list")
+
+            if constraints.max_amount:
+                amount = kwargs.get("amount") or kwargs.get("quantity", 0)
+                price = kwargs.get("price", 1)
+                if amount * price > constraints.max_amount:
+                    raise ValueError(f"Amount exceeds max: {constraints.max_amount}")
+
+            # Check if approval required
+            if constraints.requires_approval:
+                return {
+                    "status": "pending_approval",
+                    "action": func.__name__,
+                    "params": kwargs,
+                    "constraints": constraints
+                }
+
+            return func(*args, **kwargs)
+
+        wrapper._constraints = constraints
+        wrapper._is_read_only = constraints.read_only
+        return wrapper
+    return decorator
+
+# Read-only tools (safe for agents to call freely)
+@financial_tool(ToolConstraints(read_only=True, cache_ttl_seconds=300))
+def get_price(symbol: str) -> dict:
+    """Get current price for symbol. Cached for 5 minutes."""
+    return market_data_client.get_quote(symbol)
+
+@financial_tool(ToolConstraints(read_only=True, cache_ttl_seconds=3600))
+def get_fundamentals(symbol: str, metrics: list[str]) -> dict:
+    """Get fundamental data. Cached for 1 hour."""
+    return market_data_client.get_fundamentals(symbol, metrics)
+
+@financial_tool(ToolConstraints(read_only=True))
+def get_sec_filing(symbol: str, filing_type: str, year: int) -> dict:
+    """Retrieve SEC filing content."""
+    return sec_client.get_filing(symbol, filing_type, year)
+
+@financial_tool(ToolConstraints(read_only=True))
+def get_portfolio(portfolio_id: str) -> dict:
+    """Get current portfolio positions."""
+    return portfolio_service.get_positions(portfolio_id)
+
+# Write tools (require approval above thresholds)
+@financial_tool(ToolConstraints(
+    read_only=False,
+    requires_approval=True,
+    max_amount=100000,
+    rate_limit_per_minute=10
+))
+def submit_order(symbol: str, side: str, quantity: int, price: float) -> dict:
+    """Submit trade order. Requires approval for amounts > $100k."""
+    return order_service.submit({
+        "symbol": symbol,
+        "side": side,
+        "quantity": quantity,
+        "price": price,
+        "type": "limit"
+    })
+
+# Tool registry with safety classification
+class FinancialToolRegistry:
+    """Registry that enforces tool safety at runtime."""
+
+    def __init__(self):
+        self.tools = {}
+        self.read_only_tools = set()
+        self.write_tools = set()
+
+    def register(self, tool: Callable):
+        name = tool.__name__
+        self.tools[name] = tool
+
+        if hasattr(tool, "_is_read_only") and tool._is_read_only:
+            self.read_only_tools.add(name)
+        else:
+            self.write_tools.add(name)
+
+    def get_safe_tools(self) -> list[Callable]:
+        """Return only read-only tools (safe for autonomous use)."""
+        return [self.tools[name] for name in self.read_only_tools]
+
+    def execute(self, name: str, **kwargs) -> dict:
+        """Execute tool with constraint checking."""
+        if name not in self.tools:
+            raise ValueError(f"Unknown tool: {name}")
+        return self.tools[name](**kwargs)`}
+          </Code>
+
+          <h3 className="text-lg font-semibold mt-8 mb-3" style={{ color: "var(--color-text-primary)" }}>Agent Reliability for High-Stakes</h3>
+          <p>
+            Financial agents must be <strong>deterministic</strong> (same input → same output), produce <strong>structured outputs</strong> (validated schemas), and <strong>gracefully defer</strong> to humans when uncertain. These properties enable auditing, debugging, and regulatory compliance.
+          </p>
+          <Code title="Reliable agent with structured outputs and confidence">
+{`from pydantic import BaseModel, Field, validator
+from typing import Union, Literal
+from enum import Enum
+
+class Recommendation(str, Enum):
+    BUY = "buy"
+    SELL = "sell"
+    HOLD = "hold"
+    DEFER = "defer_to_human"
+
+class InvestmentDecision(BaseModel):
+    """Structured output schema for investment decisions."""
+
+    symbol: str
+    recommendation: Recommendation
+    confidence: float = Field(ge=0, le=1)
+    reasoning: str = Field(min_length=50, max_length=2000)
+    key_factors: list[str] = Field(min_items=1, max_items=5)
+    risks: list[str] = Field(min_items=1, max_items=5)
+    position_size_pct: float = Field(ge=0, le=0.1)  # Max 10% of portfolio
+
+    @validator("recommendation", pre=True, always=True)
+    def check_confidence_threshold(cls, v, values):
+        """Auto-defer if confidence too low."""
+        confidence = values.get("confidence", 0)
+        if confidence < 0.7 and v != Recommendation.DEFER:
+            return Recommendation.DEFER
+        return v
+
+class DeferralReason(BaseModel):
+    """When agent defers to human."""
+    reason: str
+    uncertainty_sources: list[str]
+    suggested_questions: list[str]
+    partial_analysis: str
+
+class ReliableInvestmentAgent:
+    """Agent with reliability guarantees for financial decisions."""
+
+    def __init__(self, model_client, tools: list):
+        self.model = model_client
+        self.tools = tools
+        self.config = {
+            "temperature": 0,           # Deterministic
+            "seed": 42,                 # Reproducible
+            "max_retries": 3,           # Retry on failures
+            "confidence_threshold": 0.7  # Defer below this
+        }
+
+    def analyze(self, context: dict) -> Union[InvestmentDecision, DeferralReason]:
+        """Analyze investment with reliability guarantees."""
+
+        # Run with retries for transient failures
+        for attempt in range(self.config["max_retries"]):
+            try:
+                response = self.model.generate(
+                    messages=self._build_messages(context),
+                    response_format=InvestmentDecision,
+                    temperature=self.config["temperature"],
+                    seed=self.config["seed"]
+                )
+
+                # Validate output
+                decision = InvestmentDecision.model_validate(response)
+
+                # Check confidence threshold
+                if decision.confidence < self.config["confidence_threshold"]:
+                    return DeferralReason(
+                        reason=f"Confidence {decision.confidence:.2f} below threshold",
+                        uncertainty_sources=self._identify_uncertainty(context),
+                        suggested_questions=[
+                            "What is the catalyst timeline?",
+                            "Are there regulatory risks?",
+                            "How does this compare to sector peers?"
+                        ],
+                        partial_analysis=decision.reasoning
+                    )
+
+                return decision
+
+            except ValidationError as e:
+                if attempt == self.config["max_retries"] - 1:
+                    return DeferralReason(
+                        reason=f"Failed to produce valid output: {e}",
+                        uncertainty_sources=["Output validation failed"],
+                        suggested_questions=["Please review the data manually"],
+                        partial_analysis=""
+                    )
+
+    def _identify_uncertainty(self, context: dict) -> list[str]:
+        """Identify sources of uncertainty in analysis."""
+        sources = []
+        if context.get("data_age_hours", 0) > 24:
+            sources.append("Data may be stale")
+        if context.get("news_sentiment_mixed", False):
+            sources.append("Mixed news sentiment")
+        if context.get("earnings_surprise", False):
+            sources.append("Recent earnings surprise")
+        return sources`}
+          </Code>
+
+          <h3 className="text-lg font-semibold mt-8 mb-3" style={{ color: "var(--color-text-primary)" }}>Agent Observability & Audit</h3>
+          <p>
+            Every agent decision must be <strong>fully traceable</strong> for debugging and compliance. Log: input context, all tool calls with results, LLM reasoning, final output, and metadata (latency, tokens, cost). Store in immutable audit logs with retention policies.
+          </p>
+          <Code title="Agent tracing for compliance and debugging">
+{`from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Any
+import hashlib
+import json
+import boto3
+
+@dataclass
+class ToolCall:
+    tool_name: str
+    arguments: dict
+    result: Any
+    latency_ms: float
+    cached: bool
+
+@dataclass
+class AgentTrace:
+    """Complete trace of an agent decision for audit."""
+
+    trace_id: str
+    agent_id: str
+    agent_version: str
+    timestamp: datetime
+
+    # Input
+    user_input: str
+    context: dict
+
+    # Execution
+    tool_calls: list[ToolCall] = field(default_factory=list)
+    llm_calls: list[dict] = field(default_factory=list)
+
+    # Output
+    output: Any = None
+    output_type: str = ""  # "decision", "deferral", "error"
+
+    # Metadata
+    total_latency_ms: float = 0
+    total_tokens: int = 0
+    estimated_cost_usd: float = 0
+    error: str = None
+
+    def to_audit_record(self) -> dict:
+        """Convert to immutable audit record."""
+        return {
+            "trace_id": self.trace_id,
+            "agent_id": self.agent_id,
+            "agent_version": self.agent_version,
+            "timestamp": self.timestamp.isoformat(),
+            "input_hash": hashlib.sha256(self.user_input.encode()).hexdigest(),
+            "output_hash": hashlib.sha256(json.dumps(self.output, default=str).encode()).hexdigest(),
+            "output_type": self.output_type,
+            "tool_calls_count": len(self.tool_calls),
+            "total_latency_ms": self.total_latency_ms,
+            "total_tokens": self.total_tokens,
+            "cost_usd": self.estimated_cost_usd,
+            "success": self.error is None
+        }
+
+class AgentTracer:
+    """Observability layer for agent execution."""
+
+    def __init__(self, dynamodb_table, s3_bucket):
+        self.db = dynamodb_table  # Audit index
+        self.s3 = boto3.client("s3")
+        self.bucket = s3_bucket  # Full trace storage
+
+    def start_trace(self, agent_id: str, agent_version: str, user_input: str, context: dict) -> AgentTrace:
+        """Initialize trace for new agent execution."""
+        return AgentTrace(
+            trace_id=f"trace-{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}",
+            agent_id=agent_id,
+            agent_version=agent_version,
+            timestamp=datetime.utcnow(),
+            user_input=user_input,
+            context=context
+        )
+
+    def record_tool_call(self, trace: AgentTrace, tool_name: str, args: dict, result: Any, latency_ms: float, cached: bool):
+        """Record tool execution."""
+        trace.tool_calls.append(ToolCall(
+            tool_name=tool_name,
+            arguments=args,
+            result=result,
+            latency_ms=latency_ms,
+            cached=cached
+        ))
+
+    def record_llm_call(self, trace: AgentTrace, messages: list, response: str, tokens: int, latency_ms: float):
+        """Record LLM call."""
+        trace.llm_calls.append({
+            "messages": messages,
+            "response": response,
+            "tokens": tokens,
+            "latency_ms": latency_ms
+        })
+        trace.total_tokens += tokens
+
+    def complete_trace(self, trace: AgentTrace, output: Any, output_type: str):
+        """Finalize and persist trace."""
+        trace.output = output
+        trace.output_type = output_type
+        trace.total_latency_ms = (datetime.utcnow() - trace.timestamp).total_seconds() * 1000
+
+        # Calculate cost
+        trace.estimated_cost_usd = self._estimate_cost(trace.total_tokens)
+
+        # Store full trace in S3 (immutable)
+        self.s3.put_object(
+            Bucket=self.bucket,
+            Key=f"traces/{trace.timestamp:%Y/%m/%d}/{trace.trace_id}.json",
+            Body=json.dumps(trace.__dict__, default=str),
+            ContentType="application/json"
+        )
+
+        # Store audit index in DynamoDB
+        self.db.put_item(Item=trace.to_audit_record())
+
+    def replay_trace(self, trace_id: str) -> AgentTrace:
+        """Retrieve trace for debugging or audit."""
+        # Lookup in DynamoDB to get S3 path
+        response = self.db.get_item(Key={"trace_id": trace_id})
+        timestamp = datetime.fromisoformat(response["Item"]["timestamp"])
+
+        # Fetch full trace from S3
+        s3_key = f"traces/{timestamp:%Y/%m/%d}/{trace_id}.json"
+        obj = self.s3.get_object(Bucket=self.bucket, Key=s3_key)
+        return json.loads(obj["Body"].read())`}
+          </Code>
+
+          <h3 className="text-lg font-semibold mt-8 mb-3" style={{ color: "var(--color-text-primary)" }}>Agent Evaluation & Testing</h3>
+          <p>
+            Before deploying agents to production, evaluate them against <strong>historical cases</strong> with known outcomes. Track metrics: accuracy, confidence calibration (is 80% confidence correct 80% of the time?), coverage (how often does it defer?), and cost.
+          </p>
+          <Code title="Agent evaluation framework">
+{`from dataclasses import dataclass
+from typing import Optional
+import numpy as np
+
+@dataclass
+class EvalCase:
+    """Historical case for agent evaluation."""
+    case_id: str
+    input_context: dict
+    expected_recommendation: str
+    actual_outcome: str  # What actually happened (for backtesting)
+    outcome_return: float  # If we followed this, what was return?
+
+@dataclass
+class EvalResults:
+    """Aggregated evaluation metrics."""
+    accuracy: float              # % correct recommendations
+    calibration_error: float     # Difference between confidence and actual accuracy
+    coverage: float              # % of cases with non-deferred decisions
+    avg_confidence: float
+    avg_latency_ms: float
+    avg_cost_usd: float
+    confusion_matrix: dict
+    calibration_buckets: dict    # confidence bucket -> actual accuracy
+
+class AgentEvaluator:
+    """Evaluate agent performance on historical data."""
+
+    def __init__(self, agent, tracer: AgentTracer):
+        self.agent = agent
+        self.tracer = tracer
+
+    def evaluate(self, cases: list[EvalCase]) -> EvalResults:
+        """Run agent on all cases and compute metrics."""
+        predictions = []
+        confidences = []
+        actuals = []
+        deferred = 0
+        latencies = []
+        costs = []
+
+        for case in cases:
+            trace = self.tracer.start_trace(
+                self.agent.id, self.agent.version,
+                str(case.input_context), case.input_context
+            )
+
+            result = self.agent.analyze(case.input_context)
+
+            self.tracer.complete_trace(trace, result, type(result).__name__)
+            latencies.append(trace.total_latency_ms)
+            costs.append(trace.estimated_cost_usd)
+
+            if hasattr(result, "recommendation"):
+                predictions.append(result.recommendation.value)
+                confidences.append(result.confidence)
+                actuals.append(case.expected_recommendation)
+            else:
+                deferred += 1
+
+        # Calculate metrics
+        correct = sum(1 for p, a in zip(predictions, actuals) if p == a)
+        accuracy = correct / len(predictions) if predictions else 0
+
+        # Calibration: group by confidence bucket, check actual accuracy
+        calibration = self._calculate_calibration(confidences, predictions, actuals)
+
+        return EvalResults(
+            accuracy=accuracy,
+            calibration_error=calibration["error"],
+            coverage=len(predictions) / len(cases),
+            avg_confidence=np.mean(confidences) if confidences else 0,
+            avg_latency_ms=np.mean(latencies),
+            avg_cost_usd=np.mean(costs),
+            confusion_matrix=self._confusion_matrix(predictions, actuals),
+            calibration_buckets=calibration["buckets"]
+        )
+
+    def _calculate_calibration(self, confidences, predictions, actuals) -> dict:
+        """Check if stated confidence matches actual accuracy."""
+        buckets = {
+            "0.5-0.6": {"correct": 0, "total": 0},
+            "0.6-0.7": {"correct": 0, "total": 0},
+            "0.7-0.8": {"correct": 0, "total": 0},
+            "0.8-0.9": {"correct": 0, "total": 0},
+            "0.9-1.0": {"correct": 0, "total": 0},
+        }
+
+        for conf, pred, actual in zip(confidences, predictions, actuals):
+            bucket = self._get_bucket(conf)
+            buckets[bucket]["total"] += 1
+            if pred == actual:
+                buckets[bucket]["correct"] += 1
+
+        # Calculate calibration error
+        errors = []
+        for bucket, stats in buckets.items():
+            if stats["total"] > 0:
+                expected = float(bucket.split("-")[0])
+                actual_acc = stats["correct"] / stats["total"]
+                errors.append(abs(expected - actual_acc))
+
+        return {
+            "buckets": buckets,
+            "error": np.mean(errors) if errors else 0
+        }
+
+    def backtest_returns(self, cases: list[EvalCase]) -> dict:
+        """What returns would we have achieved following agent advice?"""
+        agent_returns = []
+        baseline_returns = []
+
+        for case in cases:
+            result = self.agent.analyze(case.input_context)
+
+            if hasattr(result, "recommendation") and result.recommendation.value != "hold":
+                # Agent made a directional call
+                if result.recommendation.value == case.actual_outcome:
+                    agent_returns.append(abs(case.outcome_return))
+                else:
+                    agent_returns.append(-abs(case.outcome_return))
+            else:
+                agent_returns.append(0)  # Held or deferred
+
+            baseline_returns.append(case.outcome_return)
+
+        return {
+            "agent_total_return": sum(agent_returns),
+            "baseline_total_return": sum(baseline_returns),
+            "agent_sharpe": np.mean(agent_returns) / np.std(agent_returns) if agent_returns else 0,
+            "hit_rate": sum(1 for r in agent_returns if r > 0) / len(agent_returns)
+        }`}
+          </Code>
+
+          <h3 className="text-lg font-semibold mt-8 mb-3" style={{ color: "var(--color-text-primary)" }}>Production Deployment Patterns</h3>
+          <p>
+            Scale agents with <strong>stateless execution</strong> (no in-memory state between calls), <strong>session persistence</strong> (DynamoDB for multi-turn), <strong>version tracking</strong> (which agent version made each decision), and <strong>cost controls</strong> (budget limits per agent/user).
+          </p>
+          <Code title="Production agent deployment">
+{`import boto3
+from datetime import datetime
+from decimal import Decimal
+
+dynamodb = boto3.resource("dynamodb")
+sessions_table = dynamodb.Table("agent-sessions")
+budgets_table = dynamodb.Table("agent-budgets")
+
+class ProductionAgentRuntime:
+    """Production-ready agent runtime with scaling and cost control."""
+
+    def __init__(self, agent_registry: dict, tracer: AgentTracer):
+        self.agents = agent_registry  # version -> agent instance
+        self.tracer = tracer
+        self.default_budget_usd = 10.0  # Per session
+
+    def invoke(
+        self,
+        agent_id: str,
+        agent_version: str,
+        session_id: str,
+        user_input: str,
+        user_id: str
+    ) -> dict:
+        """Invoke agent with session management and cost control."""
+
+        # Check budget
+        budget = self._get_remaining_budget(user_id, session_id)
+        if budget <= 0:
+            return {"error": "Budget exceeded", "remaining_budget": 0}
+
+        # Load session state (multi-turn memory)
+        session = self._load_session(session_id)
+
+        # Get agent version
+        agent = self.agents.get(f"{agent_id}:{agent_version}")
+        if not agent:
+            return {"error": f"Agent not found: {agent_id}:{agent_version}"}
+
+        # Start trace
+        trace = self.tracer.start_trace(
+            agent_id, agent_version, user_input,
+            {"session": session, "user_id": user_id}
+        )
+
+        # Execute agent
+        try:
+            result = agent.run(
+                user_input=user_input,
+                context=session.get("context", {}),
+                history=session.get("history", [])
+            )
+
+            # Update session
+            session["history"].append({
+                "role": "user", "content": user_input
+            })
+            session["history"].append({
+                "role": "assistant", "content": str(result)
+            })
+            self._save_session(session_id, session)
+
+            # Complete trace and deduct cost
+            self.tracer.complete_trace(trace, result, type(result).__name__)
+            self._deduct_cost(user_id, session_id, trace.estimated_cost_usd)
+
+            return {
+                "result": result,
+                "trace_id": trace.trace_id,
+                "cost_usd": trace.estimated_cost_usd,
+                "remaining_budget": budget - trace.estimated_cost_usd
+            }
+
+        except Exception as e:
+            trace.error = str(e)
+            self.tracer.complete_trace(trace, None, "error")
+            return {"error": str(e), "trace_id": trace.trace_id}
+
+    def _load_session(self, session_id: str) -> dict:
+        """Load session from DynamoDB."""
+        response = sessions_table.get_item(Key={"session_id": session_id})
+        if "Item" in response:
+            return response["Item"]
+        return {"session_id": session_id, "context": {}, "history": [], "created_at": datetime.utcnow().isoformat()}
+
+    def _save_session(self, session_id: str, session: dict):
+        """Save session to DynamoDB."""
+        session["updated_at"] = datetime.utcnow().isoformat()
+        sessions_table.put_item(Item=session)
+
+    def _get_remaining_budget(self, user_id: str, session_id: str) -> float:
+        """Get remaining budget for user/session."""
+        response = budgets_table.get_item(Key={"user_id": user_id})
+        if "Item" in response:
+            return float(response["Item"].get("remaining", self.default_budget_usd))
+        return self.default_budget_usd
+
+    def _deduct_cost(self, user_id: str, session_id: str, cost: float):
+        """Deduct cost from budget."""
+        budgets_table.update_item(
+            Key={"user_id": user_id},
+            UpdateExpression="SET remaining = if_not_exists(remaining, :default) - :cost",
+            ExpressionAttributeValues={
+                ":cost": Decimal(str(cost)),
+                ":default": Decimal(str(self.default_budget_usd))
+            }
+        )
+
+# Lambda handler for serverless deployment
+def lambda_handler(event, context):
+    """AWS Lambda entry point for agent invocation."""
+    runtime = ProductionAgentRuntime(AGENT_REGISTRY, TRACER)
+
+    return runtime.invoke(
+        agent_id=event["agent_id"],
+        agent_version=event.get("version", "latest"),
+        session_id=event["session_id"],
+        user_input=event["input"],
+        user_id=event["user_id"]
+    )`}
+          </Code>
+
+          <Callout type="insight" title="Investment application">
+            Research agents can gather data from multiple sources (SEC filings, earnings calls, news), analyze patterns, and propose investment theses — with human approval before any action. The key is designing clear tool boundaries, structured outputs with citations, and full audit trails for compliance.
+          </Callout>
+        </Prose>
+      ),
+    },
+    {
+      id: "human-in-the-loop",
+      title: "Human-in-the-Loop Systems",
+      subtitle: "Keeping humans in control of AI decisions",
+      content: (
+        <Prose>
+          <p>
+            <strong>Human-in-the-loop (HITL)</strong> systems ensure AI decisions are reviewed by humans before execution. This is essential for high-stakes domains like finance, healthcare, and legal — where AI errors have real consequences. The architecture balances automation benefits with human oversight requirements.
+          </p>
+          <p>
+            The core pattern is an <strong>approval workflow</strong>: AI proposes an action, it enters a review queue, a human approves/rejects/modifies, then the system executes (or doesn't). Key design decisions: <strong>what requires approval</strong> (threshold-based: amount, confidence, novelty), <strong>who approves</strong> (role-based routing), <strong>timeout handling</strong> (escalation or auto-reject), and <strong>feedback capture</strong> (improve the AI from corrections).
+          </p>
+          <Code title="Human approval workflow with Step Functions">
+{`import boto3
+import json
+from datetime import datetime
+from enum import Enum
+
+sfn = boto3.client("stepfunctions")
+dynamodb = boto3.resource("dynamodb")
+approvals_table = dynamodb.Table("pending-approvals")
+
+class ApprovalStatus(Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    ESCALATED = "escalated"
+
+class ApprovalWorkflow:
+    """Human-in-the-loop approval system."""
+
+    def __init__(self, approval_rules: dict):
+        self.rules = approval_rules  # Thresholds for auto-approve vs require review
+
+    def submit_for_approval(
+        self,
+        action_type: str,
+        payload: dict,
+        proposed_by: str,
+        task_token: str  # Step Functions callback token
+    ) -> str:
+        """Submit action for human review."""
+        approval_id = f"approval-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}-{action_type}"
+
+        # Check if auto-approval is possible
+        if self._can_auto_approve(action_type, payload):
+            self._complete_approval(task_token, approved=True, approver="AUTO")
+            return approval_id
+
+        # Determine approver based on rules
+        required_approver = self._get_required_approver(action_type, payload)
+
+        # Store pending approval
+        approvals_table.put_item(Item={
+            "approval_id": approval_id,
+            "action_type": action_type,
+            "payload": json.dumps(payload),
+            "proposed_by": proposed_by,
+            "required_approver": required_approver,
+            "task_token": task_token,
+            "status": ApprovalStatus.PENDING.value,
+            "created_at": datetime.utcnow().isoformat(),
+            "ttl": int(datetime.utcnow().timestamp()) + 86400  # 24h expiry
+        })
+
+        # Notify approver (SNS, Slack, email)
+        self._notify_approver(approval_id, required_approver, action_type, payload)
+
+        return approval_id
+
+    def process_decision(
+        self,
+        approval_id: str,
+        approved: bool,
+        approver: str,
+        comments: str = None
+    ):
+        """Process human decision on pending approval."""
+        # Get pending approval
+        response = approvals_table.get_item(Key={"approval_id": approval_id})
+        item = response.get("Item")
+
+        if not item or item["status"] != ApprovalStatus.PENDING.value:
+            raise ValueError(f"Invalid or already processed: {approval_id}")
+
+        # Update approval record
+        approvals_table.update_item(
+            Key={"approval_id": approval_id},
+            UpdateExpression="SET #status = :status, approver = :approver, decided_at = :now, comments = :comments",
+            ExpressionAttributeNames={"#status": "status"},
+            ExpressionAttributeValues={
+                ":status": ApprovalStatus.APPROVED.value if approved else ApprovalStatus.REJECTED.value,
+                ":approver": approver,
+                ":now": datetime.utcnow().isoformat(),
+                ":comments": comments
+            }
+        )
+
+        # Resume Step Functions workflow
+        self._complete_approval(item["task_token"], approved, approver)
+
+        # Log for audit trail
+        self._log_audit_event(approval_id, approved, approver, comments)
+
+    def _complete_approval(self, task_token: str, approved: bool, approver: str):
+        """Send result back to Step Functions."""
+        if approved:
+            sfn.send_task_success(
+                taskToken=task_token,
+                output=json.dumps({"approved": True, "approver": approver})
+            )
+        else:
+            sfn.send_task_failure(
+                taskToken=task_token,
+                error="ActionRejected",
+                cause=f"Rejected by {approver}"
+            )
+
+    def _can_auto_approve(self, action_type: str, payload: dict) -> bool:
+        """Check if action meets auto-approval criteria."""
+        rules = self.rules.get(action_type, {})
+        max_auto_amount = rules.get("max_auto_amount", 0)
+        amount = payload.get("amount", float("inf"))
+        return amount <= max_auto_amount
+
+    def _get_required_approver(self, action_type: str, payload: dict) -> str:
+        """Determine who should approve based on rules."""
+        rules = self.rules.get(action_type, {})
+        amount = payload.get("amount", 0)
+
+        # Escalation tiers
+        if amount > rules.get("senior_threshold", float("inf")):
+            return "investment_committee"
+        elif amount > rules.get("manager_threshold", float("inf")):
+            return "portfolio_manager"
+        else:
+            return "analyst"`}
+          </Code>
+          <p>
+            <strong>Confidence-based routing</strong> is a powerful pattern: AI decisions with high confidence proceed automatically, while low-confidence decisions require human review. This maximizes automation while catching uncertain cases. Track accuracy per confidence bucket to calibrate thresholds.
+          </p>
+          <Code title="Confidence-based approval routing">
+{`class ConfidenceRouter:
+    """Route decisions based on AI confidence levels."""
+
+    def __init__(self, thresholds: dict):
+        # Example: {"auto_approve": 0.95, "single_review": 0.80, "committee": 0.60}
+        self.thresholds = thresholds
+
+    def route_decision(self, prediction: dict) -> str:
+        """Determine routing based on confidence."""
+        confidence = prediction.get("confidence", 0)
+
+        if confidence >= self.thresholds["auto_approve"]:
+            return "auto_approve"
+        elif confidence >= self.thresholds["single_review"]:
+            return "single_review"
+        elif confidence >= self.thresholds["committee"]:
+            return "committee_review"
+        else:
+            return "reject_low_confidence"
+
+    def update_thresholds_from_feedback(self, feedback_data: list[dict]):
+        """Adjust thresholds based on human feedback accuracy."""
+        # Track: for each confidence bucket, what % were correct?
+        # If high-confidence decisions are often overturned, lower threshold
+
+        buckets = {
+            "0.9-1.0": {"correct": 0, "total": 0},
+            "0.8-0.9": {"correct": 0, "total": 0},
+            "0.6-0.8": {"correct": 0, "total": 0},
+        }
+
+        for item in feedback_data:
+            conf = item["confidence"]
+            human_agreed = item["human_approved"] == item["ai_recommended"]
+
+            bucket = self._get_bucket(conf)
+            buckets[bucket]["total"] += 1
+            if human_agreed:
+                buckets[bucket]["correct"] += 1
+
+        # Adjust auto-approve threshold to maintain 98% accuracy
+        for bucket, stats in buckets.items():
+            if stats["total"] > 100:  # Enough data
+                accuracy = stats["correct"] / stats["total"]
+                if accuracy < 0.98 and bucket == "0.9-1.0":
+                    self.thresholds["auto_approve"] = 0.98  # Raise bar`}
+          </Code>
+          <p>
+            <strong>Audit trails</strong> are non-negotiable for regulated industries. Every AI decision must be logged with: what was proposed, what context was available, what the AI reasoned, who approved it, and what actually happened. Use immutable storage (S3 with versioning or append-only DynamoDB tables).
+          </p>
+          <Callout type="warning" title="Compliance requirement">
+            In financial services, regulators require demonstrable human oversight of AI systems. The audit trail must prove that humans reviewed and approved significant decisions. Design your HITL system with regulatory audits in mind.
+          </Callout>
+        </Prose>
+      ),
+    },
+    {
+      id: "llm-infrastructure",
+      title: "LLM System Architecture",
+      subtitle: "Production infrastructure for language models",
+      content: (
+        <Prose>
+          <p>
+            Production LLM systems require infrastructure beyond the model itself: <strong>prompt management</strong> (versioning, A/B testing), <strong>retrieval augmentation</strong> (RAG pipelines), <strong>semantic caching</strong> (cost reduction), <strong>model routing</strong> (cost/latency optimization), and <strong>streaming infrastructure</strong> (real-time responses). Each component needs careful design for reliability and cost control.
+          </p>
+          <p>
+            <strong>Prompt management</strong> treats prompts as code: version controlled, tested, and deployed through CI/CD. Separate prompt templates from application code. A/B test prompt variations to optimize for quality metrics. Roll back bad prompts quickly without code deployments.
+          </p>
+          <Code title="Prompt management system">
+{`import json
+from dataclasses import dataclass
+from typing import Optional
+import hashlib
+
+@dataclass
+class PromptVersion:
+    id: str
+    template: str
+    version: int
+    variables: list[str]
+    metadata: dict
+
+class PromptManager:
+    """Versioned prompt management with A/B testing."""
+
+    def __init__(self, dynamodb_table, s3_bucket):
+        self.db = dynamodb_table
+        self.s3 = s3_bucket
+        self.cache = {}  # Local cache for hot prompts
+
+    def get_prompt(self, prompt_id: str, version: Optional[int] = None) -> PromptVersion:
+        """Get prompt template, optionally specific version."""
+        cache_key = f"{prompt_id}:{version or 'latest'}"
+
+        if cache_key in self.cache:
+            return self.cache[cache_key]
+
+        if version:
+            response = self.db.get_item(Key={"prompt_id": prompt_id, "version": version})
+        else:
+            # Get latest version
+            response = self.db.query(
+                KeyConditionExpression="prompt_id = :pid",
+                ExpressionAttributeValues={":pid": prompt_id},
+                ScanIndexForward=False,
+                Limit=1
+            )
+            response = {"Item": response["Items"][0]} if response["Items"] else {}
+
+        item = response.get("Item")
+        if not item:
+            raise ValueError(f"Prompt not found: {prompt_id}")
+
+        prompt = PromptVersion(
+            id=item["prompt_id"],
+            template=item["template"],
+            version=item["version"],
+            variables=item.get("variables", []),
+            metadata=item.get("metadata", {})
+        )
+
+        self.cache[cache_key] = prompt
+        return prompt
+
+    def render(self, prompt_id: str, variables: dict, version: Optional[int] = None) -> str:
+        """Render prompt with variables."""
+        prompt = self.get_prompt(prompt_id, version)
+
+        # Validate all required variables provided
+        missing = set(prompt.variables) - set(variables.keys())
+        if missing:
+            raise ValueError(f"Missing variables: {missing}")
+
+        return prompt.template.format(**variables)
+
+    def create_version(self, prompt_id: str, template: str, variables: list[str], metadata: dict = None) -> int:
+        """Create new prompt version."""
+        # Get current latest version
+        try:
+            current = self.get_prompt(prompt_id)
+            new_version = current.version + 1
+        except ValueError:
+            new_version = 1
+
+        self.db.put_item(Item={
+            "prompt_id": prompt_id,
+            "version": new_version,
+            "template": template,
+            "variables": variables,
+            "metadata": metadata or {},
+            "created_at": datetime.utcnow().isoformat()
+        })
+
+        # Invalidate cache
+        self.cache.pop(f"{prompt_id}:latest", None)
+
+        return new_version
+
+    def get_ab_variant(self, prompt_id: str, user_id: str) -> PromptVersion:
+        """Get A/B test variant based on user bucketing."""
+        # Consistent hashing for stable bucket assignment
+        bucket = int(hashlib.md5(f"{prompt_id}:{user_id}".encode()).hexdigest(), 16) % 100
+
+        # Get active experiment config
+        experiment = self.db.get_item(Key={"prompt_id": f"experiment:{prompt_id}"}).get("Item")
+
+        if not experiment or not experiment.get("active"):
+            return self.get_prompt(prompt_id)
+
+        # Route to variant based on bucket
+        for variant in experiment["variants"]:
+            if bucket < variant["bucket_end"]:
+                return self.get_prompt(prompt_id, variant["version"])
+
+        return self.get_prompt(prompt_id)`}
+          </Code>
+          <p>
+            <strong>Semantic caching</strong> stores responses for similar queries, not just exact matches. Hash the prompt embedding and check for near-matches. This can reduce token costs by 40-80% for repetitive workloads. Key considerations: cache TTL (information freshness), similarity threshold (precision/recall tradeoff), and cache invalidation (when source data changes).
+          </p>
+          <Code title="Semantic caching for LLM responses">
+{`import hashlib
+import numpy as np
+from typing import Optional
+
+class SemanticCache:
+    """Cache LLM responses using semantic similarity."""
+
+    def __init__(self, vector_store, redis_client, similarity_threshold: float = 0.92):
+        self.vectors = vector_store
+        self.redis = redis_client
+        self.threshold = similarity_threshold
+
+    def get(self, query: str, context_hash: str = "") -> Optional[str]:
+        """Check cache for semantically similar query."""
+        # Generate embedding for query
+        query_embedding = self._embed(query)
+
+        # Search for similar queries in vector store
+        results = self.vectors.search(
+            vector=query_embedding,
+            top_k=1,
+            filter={"context_hash": context_hash} if context_hash else None
+        )
+
+        if results and results[0].score >= self.threshold:
+            # Cache hit - retrieve response from Redis
+            cache_key = results[0].metadata["cache_key"]
+            cached = self.redis.get(cache_key)
+            if cached:
+                return cached.decode()
+
+        return None
+
+    def set(self, query: str, response: str, context_hash: str = "", ttl: int = 3600):
+        """Store query-response pair in cache."""
+        query_embedding = self._embed(query)
+        cache_key = hashlib.sha256(f"{query}:{context_hash}".encode()).hexdigest()
+
+        # Store embedding in vector store
+        self.vectors.upsert(
+            id=cache_key,
+            vector=query_embedding,
+            metadata={
+                "cache_key": cache_key,
+                "context_hash": context_hash,
+                "query_preview": query[:100]
+            }
+        )
+
+        # Store response in Redis with TTL
+        self.redis.setex(cache_key, ttl, response)
+
+    def invalidate_by_context(self, context_hash: str):
+        """Invalidate all cache entries for a context (e.g., when source docs change)."""
+        # Query all entries with this context
+        results = self.vectors.query(
+            filter={"context_hash": context_hash},
+            top_k=1000
+        )
+
+        # Delete from both stores
+        for r in results:
+            self.redis.delete(r.metadata["cache_key"])
+            self.vectors.delete(r.id)
+
+    def _embed(self, text: str) -> list[float]:
+        # Use embedding model (Bedrock Titan, OpenAI, etc.)
+        return embedding_model.embed(text)`}
+          </Code>
+          <p>
+            <strong>Model routing</strong> selects the optimal model per request based on complexity, cost, and latency requirements. Simple queries go to fast/cheap models (GPT-4o-mini), complex reasoning to capable models (Claude), and sensitive data to on-premise models. A classifier (often a small LLM) determines routing.
+          </p>
+          <Callout type="tip" title="Cost optimization">
+            Combine semantic caching + model routing for maximum savings. In production, semantic caching alone can reduce costs by 50%+. Adding model routing for simple queries saves another 30-40%. Monitor cache hit rates and model distribution to optimize thresholds.
+          </Callout>
+        </Prose>
+      ),
+    },
+    {
+      id: "guardrails",
+      title: "Guardrails & Safety Patterns",
+      subtitle: "Preventing AI systems from causing harm",
+      content: (
+        <Prose>
+          <p>
+            <strong>AI guardrails</strong> are defensive measures that prevent AI systems from causing harm — whether through malicious input, hallucinations, excessive costs, or unauthorized actions. Defense in depth applies: multiple layers of validation at input, processing, output, and action stages.
+          </p>
+          <p>
+            <strong>Input validation</strong> is the first line of defense. Detect prompt injection attacks (attempts to override system instructions), validate input schemas, enforce rate limits, and check content policies. AWS Bedrock Guardrails provides managed input filtering; for custom logic, implement pre-processing Lambda functions.
+          </p>
+          <Code title="Input validation layer">
+{`import re
+from dataclasses import dataclass
+from typing import Optional
+from enum import Enum
+
+class RiskLevel(Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    BLOCKED = "blocked"
+
+@dataclass
+class ValidationResult:
+    allowed: bool
+    risk_level: RiskLevel
+    issues: list[str]
+    sanitized_input: Optional[str] = None
+
+class InputGuardrails:
+    """Input validation and sanitization for LLM requests."""
+
+    # Patterns that may indicate prompt injection
+    INJECTION_PATTERNS = [
+        r"ignore (all )?(previous|prior|above) instructions",
+        r"disregard (all )?(previous|prior|above)",
+        r"you are now",
+        r"new persona",
+        r"override.*system",
+        r"forget everything",
+        r"\\[INST\\]",  # Llama instruction markers
+        r"<\\|.*\\|>",  # Special tokens
+    ]
+
+    def __init__(self, max_length: int = 10000, blocked_terms: list[str] = None):
+        self.max_length = max_length
+        self.blocked_terms = blocked_terms or []
+        self.injection_regex = re.compile("|".join(self.INJECTION_PATTERNS), re.IGNORECASE)
+
+    def validate(self, user_input: str, context: dict = None) -> ValidationResult:
+        """Validate user input and return risk assessment."""
+        issues = []
+        risk_level = RiskLevel.LOW
+
+        # Length check
+        if len(user_input) > self.max_length:
+            issues.append(f"Input exceeds max length ({self.max_length})")
+            risk_level = RiskLevel.BLOCKED
+            return ValidationResult(False, risk_level, issues)
+
+        # Prompt injection detection
+        if self.injection_regex.search(user_input):
+            issues.append("Potential prompt injection detected")
+            risk_level = RiskLevel.HIGH
+
+        # Blocked terms
+        for term in self.blocked_terms:
+            if term.lower() in user_input.lower():
+                issues.append(f"Blocked term detected: {term}")
+                risk_level = RiskLevel.BLOCKED
+
+        # Check for attempts to access restricted data
+        if context and context.get("user_role") != "admin":
+            restricted_patterns = [
+                r"(all|every) (user|customer|client)",
+                r"(salary|compensation|ssn|social security)",
+                r"(password|credential|secret|key)",
+            ]
+            for pattern in restricted_patterns:
+                if re.search(pattern, user_input, re.IGNORECASE):
+                    issues.append("Attempted access to restricted data")
+                    risk_level = max(risk_level, RiskLevel.MEDIUM, key=lambda x: list(RiskLevel).index(x))
+
+        # Determine if allowed
+        allowed = risk_level != RiskLevel.BLOCKED
+
+        return ValidationResult(
+            allowed=allowed,
+            risk_level=risk_level,
+            issues=issues,
+            sanitized_input=user_input if allowed else None
+        )`}
+          </Code>
+          <p>
+            <strong>Output validation</strong> catches problems in AI responses before they reach users. Key checks: hallucination detection (verify facts against source documents), PII detection (mask or block sensitive data), format validation (ensure structured outputs match schema), and toxicity filtering.
+          </p>
+          <Code title="Output validation and grounding">
+{`import json
+import re
+from typing import Optional
+
+class OutputGuardrails:
+    """Validate and filter LLM outputs before delivery."""
+
+    # PII patterns
+    PII_PATTERNS = {
+        "ssn": r"\\b\\d{3}-\\d{2}-\\d{4}\\b",
+        "credit_card": r"\\b\\d{4}[- ]?\\d{4}[- ]?\\d{4}[- ]?\\d{4}\\b",
+        "email": r"\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}\\b",
+        "phone": r"\\b\\d{3}[-.\\s]?\\d{3}[-.\\s]?\\d{4}\\b",
+    }
+
+    def __init__(self, source_documents: list[str] = None):
+        self.sources = source_documents or []
+        self.pii_regex = {k: re.compile(v) for k, v in self.PII_PATTERNS.items()}
+
+    def validate_output(self, response: str, expected_schema: dict = None) -> dict:
+        """Validate LLM output and return filtered result."""
+        issues = []
+        filtered_response = response
+
+        # PII detection and masking
+        pii_found = self._detect_pii(response)
+        if pii_found:
+            issues.append(f"PII detected: {list(pii_found.keys())}")
+            filtered_response = self._mask_pii(filtered_response, pii_found)
+
+        # Schema validation (for structured outputs)
+        if expected_schema:
+            try:
+                parsed = json.loads(response)
+                schema_errors = self._validate_schema(parsed, expected_schema)
+                if schema_errors:
+                    issues.extend(schema_errors)
+            except json.JSONDecodeError:
+                issues.append("Response is not valid JSON")
+
+        # Factual grounding check
+        if self.sources:
+            ungrounded_claims = self._check_grounding(response)
+            if ungrounded_claims:
+                issues.append(f"Potentially ungrounded claims: {len(ungrounded_claims)}")
+
+        return {
+            "original": response,
+            "filtered": filtered_response,
+            "issues": issues,
+            "passed": len(issues) == 0
+        }
+
+    def _detect_pii(self, text: str) -> dict[str, list[str]]:
+        """Detect PII in text."""
+        found = {}
+        for pii_type, regex in self.pii_regex.items():
+            matches = regex.findall(text)
+            if matches:
+                found[pii_type] = matches
+        return found
+
+    def _mask_pii(self, text: str, pii: dict[str, list[str]]) -> str:
+        """Mask detected PII."""
+        masked = text
+        for pii_type, values in pii.items():
+            for value in values:
+                mask = f"[{pii_type.upper()}_REDACTED]"
+                masked = masked.replace(value, mask)
+        return masked
+
+    def _check_grounding(self, response: str) -> list[str]:
+        """Check if claims in response are grounded in source documents."""
+        # Extract factual claims (sentences with numbers, dates, names)
+        claim_pattern = r"[^.]*\\d+[^.]*\\."
+        claims = re.findall(claim_pattern, response)
+
+        ungrounded = []
+        for claim in claims:
+            # Check if claim appears in or is supported by sources
+            if not any(self._is_supported(claim, source) for source in self.sources):
+                ungrounded.append(claim.strip())
+
+        return ungrounded
+
+    def _is_supported(self, claim: str, source: str) -> bool:
+        """Check if claim is supported by source document."""
+        # Simplified: check for key term overlap
+        # Production: use entailment model or semantic similarity
+        claim_terms = set(claim.lower().split())
+        source_terms = set(source.lower().split())
+        overlap = len(claim_terms & source_terms) / len(claim_terms)
+        return overlap > 0.5`}
+          </Code>
+          <p>
+            <strong>Action safeguards</strong> prevent AI from taking harmful actions even if it "decides" to. Implement allowlists (only permitted tools), parameter limits (max trade size, max budget), confirmation gates (high-impact actions require human approval), and automatic rollback triggers.
+          </p>
+          <Callout type="warning" title="Defense in depth">
+            No single guardrail is sufficient. Layer input validation + processing constraints + output validation + action safeguards. Monitor all layers and alert on anomalies. Assume each layer will occasionally fail — the others must catch it.
+          </Callout>
+        </Prose>
+      ),
+    },
+    {
+      id: "backtesting",
+      title: "Backtesting Infrastructure",
+      subtitle: "Testing strategies without risking real capital",
+      content: (
+        <Prose>
+          <p>
+            <strong>Backtesting</strong> evaluates trading strategies on historical data to estimate future performance. The cardinal sin is <strong>look-ahead bias</strong> — using information that wouldn't have been available at the time. A production backtesting system must enforce <strong>point-in-time correctness</strong>: at any simulated time T, only data available before T can be used.
+          </p>
+          <p>
+            <strong>Data versioning</strong> is essential because data changes over time. Company financials get restated. Stock splits are applied retroactively. Economic indicators are revised. Your backtest at time T must use the data <em>as it was known</em> at time T, not the current "corrected" values. This requires storing data with <strong>as-of timestamps</strong> and querying with temporal filters.
+          </p>
+          <Code title="Point-in-time data access">
+{`from datetime import datetime, timedelta
+from decimal import Decimal
+from typing import Optional
+
+class PointInTimeDataStore:
+    """Historical data with point-in-time correctness."""
+
+    def __init__(self, dynamodb_table, s3_bucket):
+        self.db = dynamodb_table  # For fast lookups
+        self.s3 = s3_bucket  # For bulk historical data
+
+    def get_price(self, symbol: str, as_of: datetime) -> Optional[Decimal]:
+        """Get price as known at a specific point in time."""
+        # Query for most recent price BEFORE as_of
+        response = self.db.query(
+            KeyConditionExpression="symbol = :sym AND event_time <= :ts",
+            ExpressionAttributeValues={
+                ":sym": symbol,
+                ":ts": as_of.isoformat()
+            },
+            ScanIndexForward=False,
+            Limit=1
+        )
+
+        if response["Items"]:
+            return response["Items"][0]["price"]
+        return None
+
+    def get_fundamental(
+        self,
+        symbol: str,
+        metric: str,
+        as_of: datetime,
+        lag_days: int = 0
+    ) -> Optional[dict]:
+        """Get fundamental data with publication lag.
+
+        Fundamentals aren't known until published. For quarterly earnings,
+        data for Q1 (ending March 31) might not be available until May 15.
+        The lag_days parameter enforces this delay.
+        """
+        effective_date = as_of - timedelta(days=lag_days)
+
+        response = self.db.query(
+            IndexName="fundamentals-index",
+            KeyConditionExpression="symbol_metric = :key AND publication_date <= :ts",
+            ExpressionAttributeValues={
+                ":key": f"{symbol}#{metric}",
+                ":ts": effective_date.isoformat()
+            },
+            ScanIndexForward=False,
+            Limit=1
+        )
+
+        if response["Items"]:
+            return {
+                "value": response["Items"][0]["value"],
+                "period_end": response["Items"][0]["period_end"],
+                "publication_date": response["Items"][0]["publication_date"]
+            }
+        return None
+
+    def get_prices_bulk(
+        self,
+        symbols: list[str],
+        start: datetime,
+        end: datetime
+    ) -> dict[str, list[dict]]:
+        """Bulk fetch price history for multiple symbols."""
+        # For bulk historical data, read from S3/Parquet
+        # Partitioned by date for efficient range queries
+
+        result = {}
+        for symbol in symbols:
+            # Query Athena or read Parquet directly
+            prices = self._query_s3_prices(symbol, start, end)
+            result[symbol] = prices
+
+        return result
+
+    def validate_no_lookahead(self, query_time: datetime, data_time: datetime) -> bool:
+        """Validate that data access doesn't have look-ahead bias."""
+        if data_time > query_time:
+            raise ValueError(
+                f"Look-ahead bias detected: querying {data_time} from {query_time}"
+            )
+        return True`}
+          </Code>
+          <p>
+            <strong>Simulation engines</strong> execute strategies against historical data. Two main approaches: <strong>event-driven</strong> (process each market event in sequence, more realistic) and <strong>vectorized</strong> (compute signals on entire arrays, much faster). Event-driven catches timing bugs; vectorized enables rapid parameter sweeps. Many systems use vectorized for screening, event-driven for final validation.
+          </p>
+          <Code title="Event-driven backtest engine">
+{`from dataclasses import dataclass, field
+from datetime import datetime
+from decimal import Decimal
+from typing import Callable
+from enum import Enum
+
+class OrderSide(Enum):
+    BUY = "buy"
+    SELL = "sell"
+
+@dataclass
+class Order:
+    symbol: str
+    side: OrderSide
+    quantity: Decimal
+    order_type: str = "market"
+    limit_price: Optional[Decimal] = None
+
+@dataclass
+class Fill:
+    symbol: str
+    side: OrderSide
+    quantity: Decimal
+    price: Decimal
+    timestamp: datetime
+    commission: Decimal
+
+@dataclass
+class Portfolio:
+    cash: Decimal = Decimal("1000000")
+    positions: dict[str, Decimal] = field(default_factory=dict)
+    trades: list[Fill] = field(default_factory=list)
+
+    def update(self, fill: Fill):
+        """Update portfolio with fill."""
+        multiplier = 1 if fill.side == OrderSide.BUY else -1
+        cost = fill.quantity * fill.price * multiplier + fill.commission
+
+        self.cash -= cost
+        current = self.positions.get(fill.symbol, Decimal("0"))
+        self.positions[fill.symbol] = current + (fill.quantity * multiplier)
+        self.trades.append(fill)
+
+    def get_value(self, prices: dict[str, Decimal]) -> Decimal:
+        """Calculate total portfolio value."""
+        positions_value = sum(
+            qty * prices.get(sym, Decimal("0"))
+            for sym, qty in self.positions.items()
+        )
+        return self.cash + positions_value
+
+class BacktestEngine:
+    """Event-driven backtesting engine."""
+
+    def __init__(
+        self,
+        data_store: PointInTimeDataStore,
+        strategy: Callable,
+        commission_rate: Decimal = Decimal("0.001"),
+        slippage_rate: Decimal = Decimal("0.0005")
+    ):
+        self.data = data_store
+        self.strategy = strategy
+        self.commission_rate = commission_rate
+        self.slippage_rate = slippage_rate
+
+    def run(
+        self,
+        symbols: list[str],
+        start: datetime,
+        end: datetime,
+        frequency: str = "1d"
+    ) -> dict:
+        """Run backtest over date range."""
+        portfolio = Portfolio()
+        daily_values = []
+
+        # Generate timestamps
+        timestamps = self._generate_timestamps(start, end, frequency)
+
+        for ts in timestamps:
+            # Get current prices (point-in-time correct)
+            prices = {
+                sym: self.data.get_price(sym, ts)
+                for sym in symbols
+            }
+
+            # Build market state for strategy
+            market_state = {
+                "timestamp": ts,
+                "prices": prices,
+                "portfolio": portfolio,
+            }
+
+            # Get strategy signals
+            orders = self.strategy(market_state)
+
+            # Execute orders with slippage
+            for order in orders:
+                fill = self._execute_order(order, prices, ts)
+                if fill:
+                    portfolio.update(fill)
+
+            # Record daily value
+            daily_values.append({
+                "date": ts,
+                "value": portfolio.get_value(prices),
+                "cash": portfolio.cash
+            })
+
+        return {
+            "final_portfolio": portfolio,
+            "daily_values": daily_values,
+            "metrics": self._calculate_metrics(daily_values)
+        }
+
+    def _execute_order(
+        self,
+        order: Order,
+        prices: dict[str, Decimal],
+        ts: datetime
+    ) -> Optional[Fill]:
+        """Execute order with slippage and commission."""
+        if order.symbol not in prices or prices[order.symbol] is None:
+            return None
+
+        base_price = prices[order.symbol]
+
+        # Apply slippage (worse price for us)
+        if order.side == OrderSide.BUY:
+            exec_price = base_price * (1 + self.slippage_rate)
+        else:
+            exec_price = base_price * (1 - self.slippage_rate)
+
+        commission = exec_price * order.quantity * self.commission_rate
+
+        return Fill(
+            symbol=order.symbol,
+            side=order.side,
+            quantity=order.quantity,
+            price=exec_price,
+            timestamp=ts,
+            commission=commission
+        )
+
+    def _calculate_metrics(self, daily_values: list[dict]) -> dict:
+        """Calculate performance metrics."""
+        values = [d["value"] for d in daily_values]
+        returns = [(values[i] / values[i-1]) - 1 for i in range(1, len(values))]
+
+        total_return = (values[-1] / values[0]) - 1
+        volatility = np.std(returns) * np.sqrt(252)  # Annualized
+        sharpe = (np.mean(returns) * 252) / volatility if volatility > 0 else 0
+
+        # Max drawdown
+        peak = values[0]
+        max_dd = 0
+        for v in values:
+            peak = max(peak, v)
+            dd = (peak - v) / peak
+            max_dd = max(max_dd, dd)
+
+        return {
+            "total_return": float(total_return),
+            "annualized_volatility": float(volatility),
+            "sharpe_ratio": float(sharpe),
+            "max_drawdown": float(max_dd),
+            "num_trades": len(daily_values[0]["portfolio"].trades) if daily_values else 0
+        }`}
+          </Code>
+          <p>
+            <strong>Parallel backtesting</strong> enables testing thousands of parameter combinations. Use AWS Batch or Step Functions Map state to run backtests in parallel. Store results in DynamoDB or S3 for analysis. Track <strong>reproducibility</strong>: log all parameters, data versions, and code versions so any backtest can be recreated exactly.
+          </p>
+          <Callout type="insight" title="Overfitting warning">
+            More backtests = higher risk of overfitting. If you test 1000 parameter combinations, some will look good by chance. Use holdout periods, walk-forward optimization, and out-of-sample testing to validate strategies. Track how many tests you've run.
+          </Callout>
+        </Prose>
+      ),
+    },
+    {
+      id: "investment-data",
+      title: "Investment Data Architecture",
+      subtitle: "Managing the data that drives decisions",
+      content: (
+        <Prose>
+          <p>
+            Investment systems consume massive amounts of data from diverse sources: <strong>market data</strong> (prices, volumes, order books), <strong>fundamental data</strong> (financials, filings, estimates), <strong>alternative data</strong> (sentiment, satellite imagery, web scraping), and <strong>reference data</strong> (tickers, exchanges, corporate actions). Each has different latency requirements, update frequencies, and quality challenges.
+          </p>
+          <p>
+            <strong>Market data architecture</strong> must handle high-frequency updates with low latency. Real-time feeds (from exchanges or vendors like Bloomberg/Refinitiv) come via WebSocket or FIX protocol. Use Kinesis for ingestion, Redis for current prices, and S3/TimescaleDB for historical. <strong>Corporate actions</strong> (splits, dividends, mergers) require retroactive adjustments to historical data.
+          </p>
+          <Code title="Market data ingestion pipeline">
+{`import asyncio
+import json
+from datetime import datetime
+from decimal import Decimal
+import boto3
+
+kinesis = boto3.client("kinesis")
+redis = redis.Redis(host="elasticache-endpoint")
+
+class MarketDataIngester:
+    """Real-time market data ingestion pipeline."""
+
+    def __init__(self, stream_name: str, symbols: list[str]):
+        self.stream_name = stream_name
+        self.symbols = set(symbols)
+        self.handlers = []
+
+    async def connect_to_feed(self, feed_url: str):
+        """Connect to market data WebSocket feed."""
+        async with websockets.connect(feed_url) as ws:
+            # Subscribe to symbols
+            await ws.send(json.dumps({
+                "action": "subscribe",
+                "symbols": list(self.symbols)
+            }))
+
+            async for message in ws:
+                await self._process_message(json.loads(message))
+
+    async def _process_message(self, data: dict):
+        """Process incoming market data message."""
+        msg_type = data.get("type")
+
+        if msg_type == "quote":
+            await self._handle_quote(data)
+        elif msg_type == "trade":
+            await self._handle_trade(data)
+        elif msg_type == "corporate_action":
+            await self._handle_corporate_action(data)
+
+    async def _handle_quote(self, data: dict):
+        """Handle quote update."""
+        symbol = data["symbol"]
+        timestamp = data["timestamp"]
+
+        # Update Redis for current price (sub-ms latency access)
+        quote_data = {
+            "bid": str(data["bid"]),
+            "ask": str(data["ask"]),
+            "bid_size": str(data["bid_size"]),
+            "ask_size": str(data["ask_size"]),
+            "timestamp": timestamp
+        }
+        redis.hset(f"quote:{symbol}", mapping=quote_data)
+
+        # Publish to Kinesis for downstream processing
+        kinesis.put_record(
+            StreamName=self.stream_name,
+            Data=json.dumps({
+                "type": "quote",
+                "symbol": symbol,
+                "data": quote_data
+            }),
+            PartitionKey=symbol  # Co-locate same symbol
+        )
+
+    async def _handle_trade(self, data: dict):
+        """Handle trade tick."""
+        symbol = data["symbol"]
+
+        # Update last trade in Redis
+        redis.hset(f"trade:{symbol}", mapping={
+            "price": str(data["price"]),
+            "size": str(data["size"]),
+            "timestamp": data["timestamp"]
+        })
+
+        # Stream to Kinesis
+        kinesis.put_record(
+            StreamName=self.stream_name,
+            Data=json.dumps({"type": "trade", **data}),
+            PartitionKey=symbol
+        )
+
+    async def _handle_corporate_action(self, data: dict):
+        """Handle corporate action (split, dividend, etc.)."""
+        # Corporate actions require special handling
+        # - Apply adjustment factor to historical prices
+        # - Notify portfolio systems to adjust positions
+        # - Update reference data
+
+        action_type = data["action_type"]
+        symbol = data["symbol"]
+
+        if action_type == "split":
+            # Queue adjustment job
+            await self._queue_price_adjustment(
+                symbol=symbol,
+                adjustment_factor=Decimal(str(data["ratio"])),
+                effective_date=data["effective_date"]
+            )
+
+        # Publish to corporate actions topic
+        kinesis.put_record(
+            StreamName=f"{self.stream_name}-corp-actions",
+            Data=json.dumps(data),
+            PartitionKey=symbol
+        )`}
+          </Code>
+          <p>
+            <strong>Signal generation</strong> transforms raw data into trading signals. The pipeline: raw data → features → alphas (predictive signals) → scores → positions. Each stage has its own storage: raw in S3, features in feature store, alphas in time-series DB, positions in operational DB. Signals have <strong>decay</strong> — they become stale — so freshness is critical.
+          </p>
+          <Code title="Alpha signal pipeline">
+{`from dataclasses import dataclass
+from datetime import datetime
+from decimal import Decimal
+from typing import Optional
+import numpy as np
+
+@dataclass
+class AlphaSignal:
+    symbol: str
+    alpha_id: str
+    value: float  # Typically standardized, e.g., z-score
+    confidence: float
+    timestamp: datetime
+    decay_hours: int = 24  # How long signal is valid
+
+    @property
+    def is_stale(self) -> bool:
+        age_hours = (datetime.utcnow() - self.timestamp).total_seconds() / 3600
+        return age_hours > self.decay_hours
+
+class AlphaGenerator:
+    """Generate trading signals from features."""
+
+    def __init__(self, feature_store, alpha_store):
+        self.features = feature_store
+        self.alphas = alpha_store
+
+    def generate_momentum_alpha(self, symbol: str, lookback_days: int = 20) -> AlphaSignal:
+        """Simple momentum alpha: recent returns predict future returns."""
+        prices = self.features.get_price_history(symbol, days=lookback_days + 1)
+
+        if len(prices) < lookback_days:
+            return None
+
+        # Calculate momentum
+        returns = np.diff(prices) / prices[:-1]
+        momentum = np.sum(returns)  # Total return over period
+
+        # Standardize to z-score
+        z_score = (momentum - self._get_universe_mean()) / self._get_universe_std()
+
+        return AlphaSignal(
+            symbol=symbol,
+            alpha_id="momentum_20d",
+            value=float(z_score),
+            confidence=0.6,  # Historical Sharpe of this signal
+            timestamp=datetime.utcnow(),
+            decay_hours=24
+        )
+
+    def generate_value_alpha(self, symbol: str) -> AlphaSignal:
+        """Value alpha: cheap stocks outperform."""
+        fundamentals = self.features.get_fundamentals(symbol)
+
+        if not fundamentals or "pe_ratio" not in fundamentals:
+            return None
+
+        pe = fundamentals["pe_ratio"]
+        sector = fundamentals.get("sector", "unknown")
+
+        # Compare to sector average
+        sector_pe = self._get_sector_average_pe(sector)
+        relative_pe = pe / sector_pe if sector_pe else 1.0
+
+        # Lower PE = higher signal (inverse relationship)
+        z_score = (1 / relative_pe - 1) * 2  # Scale factor
+
+        return AlphaSignal(
+            symbol=symbol,
+            alpha_id="value_pe",
+            value=float(z_score),
+            confidence=0.5,
+            timestamp=datetime.utcnow(),
+            decay_hours=168  # Weekly refresh
+        )
+
+    def combine_alphas(self, signals: list[AlphaSignal]) -> float:
+        """Combine multiple alpha signals into composite score."""
+        if not signals:
+            return 0.0
+
+        # Filter stale signals
+        fresh_signals = [s for s in signals if not s.is_stale]
+
+        if not fresh_signals:
+            return 0.0
+
+        # Confidence-weighted average
+        total_weight = sum(s.confidence for s in fresh_signals)
+        weighted_sum = sum(s.value * s.confidence for s in fresh_signals)
+
+        return weighted_sum / total_weight if total_weight > 0 else 0.0
+
+class PositionSizer:
+    """Convert alpha scores to target positions."""
+
+    def __init__(self, risk_budget: Decimal, max_position_pct: float = 0.05):
+        self.risk_budget = risk_budget
+        self.max_position_pct = max_position_pct
+
+    def calculate_target_weights(
+        self,
+        scores: dict[str, float],
+        volatilities: dict[str, float]
+    ) -> dict[str, Decimal]:
+        """Convert scores to target portfolio weights."""
+        # Risk parity: higher vol = smaller position
+        raw_weights = {}
+        for symbol, score in scores.items():
+            vol = volatilities.get(symbol, 0.2)  # Default 20% vol
+            raw_weights[symbol] = score / vol if vol > 0 else 0
+
+        # Normalize to sum to risk budget
+        total = sum(abs(w) for w in raw_weights.values())
+        if total == 0:
+            return {}
+
+        scale = float(self.risk_budget) / total
+        normalized = {
+            sym: Decimal(str(min(w * scale, self.max_position_pct)))
+            for sym, w in raw_weights.items()
+        }
+
+        return normalized`}
+          </Code>
+          <p>
+            <strong>Data reconciliation</strong> ensures internal records match external sources. Position reconciliation compares your positions against broker statements daily. Price reconciliation verifies market data against multiple sources. Breaks (discrepancies) must be investigated and resolved — they can indicate bugs, missed fills, or corporate actions.
+          </p>
+          <Callout type="warning" title="Data quality">
+            Garbage in, garbage out. Investment decisions based on bad data are dangerous. Implement automated data quality checks: missing data detection, outlier detection, staleness alerts, and cross-source validation. Alert immediately on quality issues — don't discover them during trading.
+          </Callout>
+        </Prose>
+      ),
+    },
+    {
       id: "observability",
       title: "Observability at Scale",
       subtitle: "Distributed tracing, metrics, alerting",
